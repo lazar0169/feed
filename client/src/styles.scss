@@ -47,19 +47,20 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.2;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  color: #ffffff;
 }
 
-h1 { font-size: 1.75rem; }
-h2 { font-size: 1.5rem; }
-h3 { font-size: 1.25rem; }
+h1 { font-size: 1.5rem; }
+h2 { font-size: 1.25rem; }
+h3 { font-size: 1.125rem; }
 
 h2 i, h3 i {
-  color: var(--primary-color);
+  color: var(--accent-lavender);
 }
 
 /* Utility Classes */
@@ -163,7 +164,7 @@ h2 i, h3 i {
 
 /* Form Styles */
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 0.875rem;
 
   label {
     display: flex;
@@ -171,43 +172,62 @@ h2 i, h3 i {
     gap: 0.375rem;
     margin-bottom: 0.5rem;
     font-weight: 600;
-    font-size: 0.875rem;
-    color: var(--text-dark);
+    font-size: 0.8125rem;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 
     i {
-      color: var(--primary-color);
-      font-size: 0.8125rem;
+      color: var(--accent-lavender);
+      font-size: 0.875rem;
     }
   }
 }
 
 .form-control {
   width: 100%;
-  padding: 0.75rem 0.875rem;
-  border: 1px solid var(--border-subtle);
-  border-radius: 10px;
-  font-size: 0.9375rem;
+  padding: 0.625rem 0.75rem;
+  border: 1.5px solid rgba(214, 189, 255, 0.25);
+  border-radius: 8px;
+  font-size: 1rem;
   font-family: inherit;
   transition: all 0.18s ease;
   background: linear-gradient(
     135deg,
-    rgba(34, 36, 52, 1),
-    rgba(31, 33, 48, 1)
+    rgba(44, 47, 62, 1),
+    rgba(38, 41, 55, 1)
   );
-  color: var(--text-dark);
+  color: #ffffff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   box-sizing: border-box;
   max-width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
 
   &:focus {
     outline: none;
-    border-color: var(--border-medium);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+    border-color: var(--accent-lavender);
+    box-shadow: 0 0 0 3px rgba(214, 189, 255, 0.15),
+                0 4px 12px rgba(0, 0, 0, 0.35);
+    background: linear-gradient(
+      135deg,
+      rgba(48, 51, 66, 1),
+      rgba(42, 45, 59, 1)
+    );
   }
 
   &::placeholder {
-    color: var(--text-light);
-    opacity: 0.6;
+    color: rgba(201, 191, 182, 0.7);
+    opacity: 1;
+  }
+}
+
+select.form-control {
+  cursor: pointer;
+
+  option {
+    background: rgba(34, 36, 52, 1);
+    color: #ffffff;
   }
 }
 
@@ -227,11 +247,11 @@ textarea.form-control {
 }
 
 .page-header {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
 .page-header h2 {
-  color: var(--text-dark);
+  color: #ffffff;
   margin-bottom: 0.5rem;
 }
 

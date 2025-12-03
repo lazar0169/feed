@@ -104,22 +104,6 @@
   gap: 0.1875rem;
   position: relative;
 
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%) scaleX(0);
-    width: 32px;
-    height: 3px;
-    background: linear-gradient(
-      90deg,
-      var(--accent-beige),
-      var(--accent-lavender)
-    );
-    border-radius: 0 0 3px 3px;
-    transition: transform 0.3s cubic-bezier(0.2, 0.0, 0.2, 1);
-  }
 }
 
 .nav-link i {
@@ -149,10 +133,6 @@
 
 .nav-link.active {
   color: var(--accent-beige);
-
-  &::before {
-    transform: translateX(-50%) scaleX(1);
-  }
 
   i {
     transform: scale(1.15);
