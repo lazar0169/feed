@@ -1,0 +1,225 @@
+<div class="login-container">
+  <div class="login-card">
+    <div class="logo-section">
+      <i class="fas fa-baby-carriage"></i>
+      <h1>Baby Feeding Tracker</h1>
+      <p class="subtitle">Track your baby's feeding schedule</p>
+    </div>
+
+    <!-- Forgot Password Form -->
+    @if (isForgotPasswordMode()) {
+      <form [formGroup]="forgotPasswordForm" (ngSubmit)="onForgotPassword()" class="auth-form">
+        <h2>
+          <i class="fas fa-key"></i>
+          Reset Password
+        </h2>
+
+        <p class="reset-info">Enter your email address and we'll send you a link to reset your password.</p>
+
+        <div class="form-group">
+          <label for="reset-email">
+            <i class="fas fa-envelope"></i>
+            EMAIL
+          </label>
+          <input
+            type="email"
+            id="reset-email"
+            formControlName="email"
+            class="form-control"
+            placeholder="Enter your email"
+            [class.error]="forgotPasswordForm.get('email')?.invalid && forgotPasswordForm.get('email')?.touched"
+          />
+        </div>
+
+        @if (errorMessage()) {
+          <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            {{ errorMessage() }}
+          </div>
+        }
+
+        @if (successMessage()) {
+          <div class="success-message">
+            <i class="fas fa-check-circle"></i>
+            {{ successMessage() }}
+          </div>
+        }
+
+        <button type="submit" class="btn-primary" [disabled]="isLoading()">
+          <i class="fas"
+             [class.fa-spinner]="isLoading()"
+             [class.fa-spin]="isLoading()"
+             [class.fa-paper-plane]="!isLoading()"></i>
+          {{ isLoading() ? 'Sending...' : 'Send Reset Link' }}
+        </button>
+
+        <div class="toggle-mode">
+          <button type="button" (click)="backToLogin()" class="btn-link">
+            <i class="fas fa-arrow-left"></i>
+            Back to Login
+          </button>
+        </div>
+      </form>
+    }
+
+    <!-- Login Form -->
+    @if (!isSignupMode() && !isForgotPasswordMode()) {
+      <form [formGroup]="loginForm" (ngSubmit)="onLogin()" class="auth-form">
+        <h2>
+          <i class="fas fa-sign-in-alt"></i>
+          Welcome Back
+        </h2>
+
+        <div class="form-group">
+          <label for="login-username">
+            <i class="fas fa-user"></i>
+            USERNAME
+          </label>
+          <input
+            type="text"
+            id="login-username"
+            formControlName="username"
+            class="form-control"
+            placeholder="Enter your username"
+            [class.error]="loginForm.get('username')?.invalid && loginForm.get('username')?.touched"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="login-password">
+            <i class="fas fa-lock"></i>
+            PASSWORD
+          </label>
+          <input
+            type="password"
+            id="login-password"
+            formControlName="password"
+            class="form-control"
+            placeholder="Enter your password"
+            [class.error]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
+          />
+        </div>
+
+        @if (errorMessage()) {
+          <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            {{ errorMessage() }}
+          </div>
+        }
+
+        <button type="submit" class="btn-primary" [disabled]="isLoading()">
+          <i class="fas"
+             [class.fa-spinner]="isLoading()"
+             [class.fa-spin]="isLoading()"
+             [class.fa-sign-in-alt]="!isLoading()"></i>
+          {{ isLoading() ? 'Signing in...' : 'Sign In' }}
+        </button>
+
+        <div class="forgot-password-link">
+          <button type="button" (click)="showForgotPassword()" class="btn-link">
+            Forgot password?
+          </button>
+        </div>
+
+        <div class="toggle-mode">
+          <span>Don't have an account?</span>
+          <button type="button" (click)="toggleMode()" class="btn-link">
+            Sign up here
+          </button>
+        </div>
+      </form>
+    }
+
+    <!-- Signup Form -->
+    @if (isSignupMode()) {
+      <form [formGroup]="signupForm" (ngSubmit)="onSignup()" class="auth-form">
+        <h2>
+          <i class="fas fa-user-plus"></i>
+          Create Account
+        </h2>
+
+        <div class="form-group">
+          <label for="signup-username">
+            <i class="fas fa-user"></i>
+            USERNAME
+          </label>
+          <input
+            type="text"
+            id="signup-username"
+            formControlName="username"
+            class="form-control"
+            placeholder="Choose a username"
+            [class.error]="signupForm.get('username')?.invalid && signupForm.get('username')?.touched"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="signup-email">
+            <i class="fas fa-envelope"></i>
+            EMAIL
+          </label>
+          <input
+            type="email"
+            id="signup-email"
+            formControlName="email"
+            class="form-control"
+            placeholder="Enter your email"
+            [class.error]="signupForm.get('email')?.invalid && signupForm.get('email')?.touched"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="signup-password">
+            <i class="fas fa-lock"></i>
+            PASSWORD
+          </label>
+          <input
+            type="password"
+            id="signup-password"
+            formControlName="password"
+            class="form-control"
+            placeholder="Choose a password (min 6 characters)"
+            [class.error]="signupForm.get('password')?.invalid && signupForm.get('password')?.touched"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="signup-confirm-password">
+            <i class="fas fa-lock"></i>
+            CONFIRM PASSWORD
+          </label>
+          <input
+            type="password"
+            id="signup-confirm-password"
+            formControlName="confirmPassword"
+            class="form-control"
+            placeholder="Confirm your password"
+            [class.error]="signupForm.get('confirmPassword')?.invalid && signupForm.get('confirmPassword')?.touched"
+          />
+        </div>
+
+        @if (errorMessage()) {
+          <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            {{ errorMessage() }}
+          </div>
+        }
+
+        <button type="submit" class="btn-primary" [disabled]="isLoading()">
+          <i class="fas"
+             [class.fa-spinner]="isLoading()"
+             [class.fa-spin]="isLoading()"
+             [class.fa-user-plus]="!isLoading()"></i>
+          {{ isLoading() ? 'Creating account...' : 'Create Account' }}
+        </button>
+
+        <div class="toggle-mode">
+          <span>Already have an account?</span>
+          <button type="button" (click)="toggleMode()" class="btn-link">
+            Sign in here
+          </button>
+        </div>
+      </form>
+    }
+  </div>
+</div>

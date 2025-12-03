@@ -1,6 +1,3 @@
-# Client folder (Angular app)
-client/
-
 # Supabase
 .env
 .env.local
