@@ -1,0 +1,120 @@
+<div class="page-container">
+  <div class="page-header">
+    <h2><i class="fas fa-cog"></i> Settings</h2>
+  </div>
+
+  <div class="settings-card">
+    <h3><i class="fas fa-bell"></i> Feeding Interval Reminder</h3>
+    <p class="settings-description">
+      Track the time between feedings and get reminded when it's time to feed.
+    </p>
+
+    <div class="form-group">
+      <label class="toggle-label">
+        <input
+          type="checkbox"
+          [checked]="intervalEnabled()"
+          (change)="onToggleInterval($any($event.target).checked)"
+          class="toggle-input"
+        />
+        <span class="toggle-switch"></span>
+        <span class="toggle-text">
+          Enable Feeding Interval
+        </span>
+      </label>
+    </div>
+
+    @if (intervalEnabled()) {
+      <div class="form-group">
+        <label for="interval-hours">
+          <i class="fas fa-clock"></i>
+          Interval <span class="unit">(hours)</span>
+        </label>
+        <input
+          id="interval-hours"
+          type="number"
+          min="0.5"
+          max="24"
+          step="0.5"
+          [value]="intervalHours()"
+          (input)="onIntervalChange(+$any($event.target).value)"
+          class="form-control"
+          placeholder="3"
+        />
+        <small class="form-hint">
+          A countdown will appear on the Today screen showing time until next feeding
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label class="toggle-label">
+          <input
+            type="checkbox"
+            [checked]="notificationsToggleEnabled()"
+            (change)="onToggleNotifications($any($event.target).checked)"
+            class="toggle-input"
+          />
+          <span class="toggle-switch"></span>
+          <span class="toggle-text">
+            Enable Browser Notifications
+          </span>
+        </label>
+        <small class="form-hint">
+          Get browser notifications when it's time to feed
+        </small>
+      </div>
+
+      @if (notificationsToggleEnabled()) {
+        <div class="notification-status">
+          <div class="status-indicator" [class.active]="notificationsEnabled()">
+            <i class="fas" [ngClass]="notificationsEnabled() ? 'fa-bell' : 'fa-bell-slash'"></i>
+          </div>
+          <div class="status-text">
+            <strong>Notification Status:</strong>
+            <span [class.success]="notificationsEnabled()" [class.warning]="!notificationsEnabled()">
+              {{ getNotificationStatusText() }}
+            </span>
+          </div>
+        </div>
+
+        @if (notificationsSupported()) {
+          <button
+            type="button"
+            class="btn btn-secondary test-btn"
+            (click)="testNotification()"
+          >
+            <i class="fas fa-vial"></i>
+            <span>Test Notification</span>
+          </button>
+        }
+      }
+    }
+  </div>
+
+  <div class="form-actions">
+    <button
+      class="btn btn-primary"
+      [disabled]="isSaving()"
+      (click)="onSave()"
+    >
+      @if (isSaving()) {
+        <i class="fas fa-spinner fa-spin"></i>
+        <span>Saving...</span>
+      } @else {
+        <i class="fas fa-save"></i>
+        <span>Save Settings</span>
+      }
+    </button>
+  </div>
+
+  @if (saveMessage()) {
+    <div
+      class="save-message"
+      [class.success]="saveMessage().includes('success')"
+      [class.error]="saveMessage().includes('Failed')"
+    >
+      <i class="fas" [ngClass]="saveMessage().includes('success') ? 'fa-check-circle' : 'fa-exclamation-circle'"></i>
+      {{ saveMessage() }}
+    </div>
+  }
+</div>

@@ -3,6 +3,7 @@ import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/rou
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs/operators';
 import { AuthService } from './services/auth.service';
+import { NotificationService } from './services/notification.service';
 
 @Component({
   selector: 'app-root',
@@ -14,6 +15,7 @@ export class App {
   // Modern Angular: Use inject() instead of constructor injection
   protected authService = inject(AuthService);
   private router = inject(Router);
+  private notificationService = inject(NotificationService); // Initialize notification service
 
   title = 'Baby Feeding Tracker';
 
