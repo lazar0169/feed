@@ -125,7 +125,7 @@ export class Settings implements OnInit {
 
   protected getNotificationStatusText(): string {
     if (!this.notificationsSupported()) {
-      return 'Browser notifications are not supported';
+      return 'Browser notifications are not supported on this device.';
     }
 
     const permission = this.notificationPermission();

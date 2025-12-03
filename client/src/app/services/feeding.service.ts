@@ -74,7 +74,10 @@ export class FeedingService {
   getEntriesByDate(date: string): FeedingEntry[] {
     return this.entriesSubject.value
       .filter(entry => entry.date === date)
-      .sort((a, b) => b.timestamp - a.timestamp);
+      .sort((a, b) => {
+        // Sort by time (HH:MM) in descending order (latest time first)
+        return b.time.localeCompare(a.time);
+      });
   }
 
   /**
