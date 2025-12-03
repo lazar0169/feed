@@ -27,7 +27,9 @@ export class App {
 
   // Computed signal for navigation visibility
   protected showNavigation = computed(() => {
-    return this.authService.isAuthenticated() && this.currentUrl() !== '/login';
+    const url = this.currentUrl();
+    const hideOnPages = ['/login', '/reset-password'];
+    return this.authService.isAuthenticated() && !hideOnPages.includes(url);
   });
 
   protected async logout(): Promise<void> {
