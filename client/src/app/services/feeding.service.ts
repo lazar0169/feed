@@ -1,34 +1,64 @@
-import { Injectable } from '@angular/core';
+import { Injectable, effect } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { FeedingEntry } from '../models/feeding-entry.model';
-import { StorageService } from './storage.service';
+import { AuthService } from './auth.service';
+
+interface FeedingEntryDb extends FeedingEntry {
+  user_id: string;
+  created_at?: string;
+  updated_at?: string;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class FeedingService {
-  private readonly STORAGE_KEY = 'feeding_entries';
   private entriesSubject = new BehaviorSubject<FeedingEntry[]>([]);
   public entries$: Observable<FeedingEntry[]> = this.entriesSubject.asObservable();
 
-  constructor(private storageService: StorageService) {
-    this.loadEntries();
+  constructor(private authService: AuthService) {
+    // Modern Angular: Use effect to watch signal changes
+    effect(() => {
+      const user = this.authService.currentUser();
+      if (user) {
+        this.loadEntries();
+      } else {
+        this.entriesSubject.next([]);
+      }
+    });
   }
 
   /**
-   * Load all entries from localStorage
+   * Load all entries from Supabase for current user
    */
-  private loadEntries(): void {
-    const entries = this.storageService.getItem<FeedingEntry[]>(this.STORAGE_KEY) || [];
-    this.entriesSubject.next(entries);
-  }
+  private async loadEntries(): Promise<void> {
+    const user = this.authService.currentUser();
+    if (!user) return;
 
-  /**
-   * Save entries to localStorage
-   */
-  private saveEntries(entries: FeedingEntry[]): void {
-    this.storageService.setItem(this.STORAGE_KEY, entries);
-    this.entriesSubject.next(entries);
+    try {
+      const supabase = this.authService.getSupabaseClient();
+      const { data, error } = await supabase
+        .from('feeding_entries')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('timestamp', { ascending: false });
+
+      if (error) throw error;
+
+      const entries: FeedingEntry[] = (data || []).map((entry: FeedingEntryDb) => ({
+        id: entry.id,
+        date: entry.date,
+        time: entry.time,
+        amount: entry.amount,
+        comment: entry.comment,
+        timestamp: entry.timestamp
+      }));
+
+      this.entriesSubject.next(entries);
+    } catch (error) {
+      console.error('Error loading entries:', error);
+      this.entriesSubject.next([]);
+    }
   }
 
   /**
@@ -65,54 +95,135 @@ export class FeedingService {
   /**
    * Create a new entry
    */
-  createEntry(entry: Omit<FeedingEntry, 'id' | 'timestamp'>): FeedingEntry {
-    const newEntry: FeedingEntry = {
-      ...entry,
-      id: this.generateId(),
-      timestamp: this.createTimestamp(entry.date, entry.time)
-    };
+  async createEntry(entry: Omit<FeedingEntry, 'id' | 'timestamp'>): Promise<FeedingEntry | null> {
+    const user = this.authService.currentUser();
+    if (!user) return null;
 
-    const entries = [...this.entriesSubject.value, newEntry];
-    this.saveEntries(entries);
-    return newEntry;
+    try {
+      const timestamp = this.createTimestamp(entry.date, entry.time);
+      const supabase = this.authService.getSupabaseClient();
+
+      const dbEntry: Partial<FeedingEntryDb> = {
+        user_id: user.id,
+        date: entry.date,
+        time: entry.time,
+        amount: entry.amount,
+        comment: entry.comment,
+        timestamp,
+        created_at: new Date().toISOString()
+      };
+
+      const { data, error } = await supabase
+        .from('feeding_entries')
+        .insert(dbEntry)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newEntry: FeedingEntry = {
+        id: data.id,
+        date: data.date,
+        time: data.time,
+        amount: data.amount,
+        comment: data.comment,
+        timestamp: data.timestamp
+      };
+
+      // Update local state
+      const entries = [...this.entriesSubject.value, newEntry];
+      this.entriesSubject.next(entries);
+
+      return newEntry;
+    } catch (error) {
+      console.error('Error creating entry:', error);
+      return null;
+    }
   }
 
   /**
    * Update an existing entry
    */
-  updateEntry(id: string, updates: Partial<Omit<FeedingEntry, 'id'>>): boolean {
-    const entries = this.entriesSubject.value;
-    const index = entries.findIndex(entry => entry.id === id);
+  async updateEntry(id: string, updates: Partial<Omit<FeedingEntry, 'id'>>): Promise<boolean> {
+    const user = this.authService.currentUser();
+    if (!user) return false;
 
-    if (index === -1) {
+    try {
+      const supabase = this.authService.getSupabaseClient();
+      const entries = this.entriesSubject.value;
+      const index = entries.findIndex(entry => entry.id === id);
+
+      if (index === -1) {
+        return false;
+      }
+
+      const updatedEntry = { ...entries[index], ...updates };
+
+      // Recalculate timestamp if date or time changed
+      if (updates.date || updates.time) {
+        updatedEntry.timestamp = this.createTimestamp(updatedEntry.date, updatedEntry.time);
+      }
+
+      const dbUpdates: Partial<FeedingEntryDb> = {
+        date: updatedEntry.date,
+        time: updatedEntry.time,
+        amount: updatedEntry.amount,
+        comment: updatedEntry.comment,
+        timestamp: updatedEntry.timestamp,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await supabase
+        .from('feeding_entries')
+        .update(dbUpdates)
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Update local state
+      entries[index] = updatedEntry;
+      this.entriesSubject.next([...entries]);
+
+      return true;
+    } catch (error) {
+      console.error('Error updating entry:', error);
       return false;
     }
-
-    const updatedEntry = { ...entries[index], ...updates };
-
-    // Recalculate timestamp if date or time changed
-    if (updates.date || updates.time) {
-      updatedEntry.timestamp = this.createTimestamp(updatedEntry.date, updatedEntry.time);
-    }
-
-    entries[index] = updatedEntry;
-    this.saveEntries([...entries]);
-    return true;
   }
 
   /**
    * Delete an entry
    */
-  deleteEntry(id: string): boolean {
-    const entries = this.entriesSubject.value;
-    const filteredEntries = entries.filter(entry => entry.id !== id);
+  async deleteEntry(id: string): Promise<boolean> {
+    const user = this.authService.currentUser();
+    if (!user) return false;
 
-    if (filteredEntries.length === entries.length) {
-      return false; // Entry not found
+    try {
+      const supabase = this.authService.getSupabaseClient();
+
+      const { error } = await supabase
+        .from('feeding_entries')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Update local state
+      const entries = this.entriesSubject.value;
+      const filteredEntries = entries.filter(entry => entry.id !== id);
+
+      if (filteredEntries.length === entries.length) {
+        return false; // Entry not found
+      }
+
+      this.entriesSubject.next(filteredEntries);
+      return true;
+    } catch (error) {
+      console.error('Error deleting entry:', error);
+      return false;
     }
-
-    this.saveEntries(filteredEntries);
-    return true;
   }
 
   /**

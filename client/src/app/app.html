@@ -1,27 +1,37 @@
 <div class="app-container">
-  <header class="app-header">
-    <h1>
-      <i class="fas fa-baby"></i>
-      {{ title }}
-    </h1>
-  </header>
+  @if (showNavigation()) {
+    <header class="app-header">
+      <h1>
+        <i class="fas fa-baby"></i>
+        {{ title }}
+      </h1>
+      @if (authService.isAuthenticated()) {
+        <button class="logout-btn" (click)="logout()">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Logout</span>
+        </button>
+      }
+    </header>
+  }
 
-  <main class="app-content">
+  <main class="app-content" [class.no-header]="!showNavigation()">
     <router-outlet></router-outlet>
   </main>
 
-  <nav class="app-nav">
-    <a routerLink="/today" routerLinkActive="active" class="nav-link">
-      <i class="fas fa-home"></i>
-      <span>Today</span>
-    </a>
-    <a routerLink="/log" routerLinkActive="active" class="nav-link">
-      <i class="fas fa-calendar-days"></i>
-      <span>Log</span>
-    </a>
-    <a routerLink="/statistics" routerLinkActive="active" class="nav-link">
-      <i class="fas fa-chart-line"></i>
-      <span>Stats</span>
-    </a>
-  </nav>
+  @if (showNavigation()) {
+    <nav class="app-nav">
+      <a routerLink="/today" routerLinkActive="active" class="nav-link">
+        <i class="fas fa-home"></i>
+        <span>Today</span>
+      </a>
+      <a routerLink="/log" routerLinkActive="active" class="nav-link">
+        <i class="fas fa-calendar-days"></i>
+        <span>Log</span>
+      </a>
+      <a routerLink="/statistics" routerLinkActive="active" class="nav-link">
+        <i class="fas fa-chart-line"></i>
+        <span>Stats</span>
+      </a>
+    </nav>
+  }
 </div>

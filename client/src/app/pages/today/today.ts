@@ -1,5 +1,6 @@
-import { Component, OnInit, signal, computed, effect } from '@angular/core';
+import { Component, OnInit, signal, computed, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FeedingService } from '../../services/feeding.service';
 import { FeedingEntry } from '../../models/feeding-entry.model';
 import { FeedingForm } from '../../components/feeding-form/feeding-form';
@@ -12,6 +13,9 @@ import { FeedingList } from '../../components/feeding-list/feeding-list';
   styleUrl: './today.scss',
 })
 export class Today implements OnInit {
+  private feedingService = inject(FeedingService);
+  private destroyRef = inject(DestroyRef);
+
   // Modern Angular signals for reactive state
   protected todayEntries = signal<FeedingEntry[]>([]);
   protected editingEntry = signal<FeedingEntry | undefined>(undefined);
@@ -22,16 +26,14 @@ export class Today implements OnInit {
     this.todayEntries().reduce((sum, entry) => sum + entry.amount, 0)
   );
 
-  constructor(private feedingService: FeedingService) {
-    // Effect runs whenever entries$ emits
-    effect(() => {
-      this.feedingService.entries$.subscribe(() => {
+  ngOnInit(): void {
+    // Modern Angular: Subscribe with automatic cleanup
+    this.feedingService.entries$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
         this.loadTodayEntries();
       });
-    });
-  }
 
-  ngOnInit(): void {
     this.loadTodayEntries();
   }
 
@@ -39,12 +41,12 @@ export class Today implements OnInit {
     this.todayEntries.set(this.feedingService.getTodayEntries());
   }
 
-  protected onSubmit(formData: { date: string; time: string; amount: number; comment?: string }): void {
+  protected async onSubmit(formData: { date: string; time: string; amount: number; comment?: string }): Promise<void> {
     const editing = this.editingEntry();
     if (editing) {
-      this.feedingService.updateEntry(editing.id, formData);
+      await this.feedingService.updateEntry(editing.id, formData);
     } else {
-      this.feedingService.createEntry(formData);
+      await this.feedingService.createEntry(formData);
     }
     this.editingEntry.set(undefined);
   }
@@ -57,7 +59,7 @@ export class Today implements OnInit {
     this.editingEntry.set(undefined);
   }
 
-  protected onDelete(id: string): void {
-    this.feedingService.deleteEntry(id);
+  protected async onDelete(id: string): Promise<void> {
+    await this.feedingService.deleteEntry(id);
   }
 }
