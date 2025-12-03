@@ -1,0 +1,39 @@
+<div class="page-container">
+  <div class="page-header">
+    <h2><i class="fas fa-sun"></i> Today's Feedings</h2>
+    <div class="today-stats">
+      <div class="stat">
+        <i class="fas fa-bottle-droplet"></i>
+        <span class="stat-label">Total</span>
+        <span class="stat-value">{{ totalAmount() }} ml</span>
+      </div>
+      <div class="stat">
+        <i class="fas fa-list-check"></i>
+        <span class="stat-label">Count</span>
+        <span class="stat-value">{{ todayEntries().length }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h3>
+      <i class="fas" [ngClass]="editingEntry() ? 'fa-pen' : 'fa-plus-circle'"></i>
+      {{ editingEntry() ? 'Edit' : 'Add New' }} Feeding
+    </h3>
+    <app-feeding-form
+      [entry]="editingEntry()"
+      [defaultDate]="todayDate"
+      (submitForm)="onSubmit($event)"
+      (cancel)="onCancelEdit()"
+    ></app-feeding-form>
+  </div>
+
+  <div class="list-section">
+    <h3><i class="fas fa-clock"></i> Today's Entries</h3>
+    <app-feeding-list
+      [entries]="todayEntries()"
+      (editEntry)="onEdit($event)"
+      (deleteEntry)="onDelete($event)"
+    ></app-feeding-list>
+  </div>
+</div>

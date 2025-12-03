@@ -1,0 +1,89 @@
+<div class="page-container">
+  <div class="page-header">
+    <h2><i class="fas fa-chart-line"></i> Statistics</h2>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card" *ngIf="todayStats()">
+      <h3><i class="fas fa-sun"></i> Today</h3>
+      <div class="stat-row">
+        <span class="label">Total Feedings:</span>
+        <span class="value">{{ todayStats()!.totalFeedings }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="label">Total Amount:</span>
+        <span class="value">{{ todayStats()!.totalAmount }} ml</span>
+      </div>
+      <div class="stat-row">
+        <span class="label">Average per Feeding:</span>
+        <span class="value">{{ todayStats()!.averageAmount }} ml</span>
+      </div>
+    </div>
+
+    <div class="stat-card" *ngIf="weekStats()">
+      <h3><i class="fas fa-calendar-week"></i> Last 7 Days</h3>
+      <div class="stat-row">
+        <span class="label">Total Feedings:</span>
+        <span class="value">{{ weekStats()!.totalFeedings }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="label">Total Amount:</span>
+        <span class="value">{{ weekStats()!.totalAmount }} ml</span>
+      </div>
+      <div class="stat-row">
+        <span class="label">Average per Feeding:</span>
+        <span class="value">{{ weekStats()!.averageAmount }} ml</span>
+      </div>
+      <div class="stat-row">
+        <span class="label">Average per Day:</span>
+        <span class="value">{{ weekStats()!.averageFeedingsPerDay }} feedings</span>
+      </div>
+    </div>
+
+    <div class="stat-card" *ngIf="monthStats()">
+      <h3><i class="fas fa-calendar-alt"></i> Last 30 Days</h3>
+      <div class="stat-row">
+        <span class="label">Total Feedings:</span>
+        <span class="value">{{ monthStats()!.totalFeedings }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="label">Total Amount:</span>
+        <span class="value">{{ monthStats()!.totalAmount }} ml</span>
+      </div>
+      <div class="stat-row">
+        <span class="label">Average per Feeding:</span>
+        <span class="value">{{ monthStats()!.averageAmount }} ml</span>
+      </div>
+      <div class="stat-row">
+        <span class="label">Average per Day:</span>
+        <span class="value">{{ monthStats()!.averageFeedingsPerDay }} feedings</span>
+      </div>
+    </div>
+
+    <div class="stat-card" *ngIf="allTimeStats()">
+      <h3><i class="fas fa-infinity"></i> All Time</h3>
+      <div class="stat-row">
+        <span class="label">Total Feedings:</span>
+        <span class="value">{{ allTimeStats()!.totalFeedings }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="label">Total Amount:</span>
+        <span class="value">{{ allTimeStats()!.totalAmount }} ml</span>
+      </div>
+      <div class="stat-row">
+        <span class="label">Average per Feeding:</span>
+        <span class="value">{{ allTimeStats()!.averageAmount }} ml</span>
+      </div>
+      <div class="stat-row">
+        <span class="label">Average per Day:</span>
+        <span class="value">{{ allTimeStats()!.averageFeedingsPerDay }} feedings</span>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!allTimeStats() || allTimeStats()!.totalFeedings === 0" class="empty-state">
+    <i class="fas fa-chart-pie"></i>
+    <p>No feeding data available yet.</p>
+    <small>Start tracking on the Today page!</small>
+  </div>
+</div>

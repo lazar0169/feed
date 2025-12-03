@@ -1,0 +1,314 @@
+.feeding-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Empty state */
+
+.empty-state {
+  border-radius: 16px;
+  padding: 1.5rem 1.25rem;
+  background: var(--bg-card);
+  border: 1px dashed var(--border-color);
+  text-align: center;
+  color: var(--text-light);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+
+  i {
+    font-size: 1.75rem;
+    color: var(--primary-color);
+    margin-bottom: 0.25rem;
+  }
+
+  p {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-dark);
+  }
+
+  small {
+    font-size: 0.8rem;
+    opacity: 0.8;
+  }
+}
+
+/* Entry card */
+
+.feeding-entry {
+  border-radius: 16px;
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.12s ease,
+    background 0.18s ease;
+}
+
+/* Passive (default) look */
+.feeding-entry:not(.is-active) {
+  background: linear-gradient(
+    135deg,
+    rgba(34, 36, 52, 1),
+    rgba(31, 33, 48, 1)
+  );
+  border: 1px solid rgba(249, 215, 196, 0.08);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+/* Hover only affects non-active */
+.feeding-entry:not(.is-active):hover {
+  border-color: rgba(249, 215, 196, 0.35);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+  transform: translateY(-1px);
+}
+
+/* Active selected state */
+.feeding-entry.is-active {
+  background: radial-gradient(
+      circle at top right,
+      rgba(214, 189, 255, 0.22),
+      rgba(25, 26, 39, 0.98)
+    );
+  border: 1px solid rgba(249, 215, 196, 0.85);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.55);
+  transform: translateY(-2px);
+}
+
+/* Layout row: time | meta (date+amount) | actions */
+
+.entry-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Time */
+
+.entry-time {
+  display: flex;
+  align-items: center;
+}
+
+.time-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  background: var(--bg-dark);
+}
+
+.time-chip i {
+  font-size: 0.9rem;
+  color: var(--accent-beige, #f6e0cf);
+  flex-shrink: 0;
+}
+
+.time-chip .time {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+/* Meta: sits between time and actions, stretches */
+
+.entry-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.entry-meta .date {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  white-space: nowrap;
+}
+
+/* Amount pill inside meta, pushed to the far right of meta */
+
+.entry-amount {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  background: var(--bg-dark);
+  flex-shrink: 0;
+}
+
+.entry-amount i {
+  font-size: 0.9rem;
+  color: var(--accent-beige, #f6e0cf);
+  margin-top: 0.05rem;
+}
+
+.amount-text {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.amount-text .amount {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+.amount-text .unit {
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+/* Actions: collapse/expand */
+
+.entry-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+
+  overflow: hidden;
+  max-width: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(4px);
+  transition:
+    max-width 0.18s ease,
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+/* When active, show actions and give them space */
+.feeding-entry.is-active .entry-actions {
+  max-width: 96px; /* enough for two buttons */
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+}
+
+/* Buttons */
+
+.btn-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    filter 0.15s ease;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+
+  i {
+    font-size: 0.85rem;
+  }
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
+  }
+
+  &:active {
+    transform: scale(0.94);
+    filter: brightness(0.9);
+  }
+}
+
+.btn-edit {
+  background-color: var(--accent-lavender);
+  color: var(--bg-dark);
+}
+
+.btn-delete {
+  background-color: var(--danger-color);
+  color: var(--bg-dark);
+}
+
+/* Comment row */
+
+.entry-comment {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  background: var(--bg-medium);
+  border: 1px solid var(--border-color);
+}
+
+.entry-comment i {
+  font-size: 0.8rem;
+  color: var(--primary-color);
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.entry-comment p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-dark);
+  line-height: 1.4;
+}
+
+/* Responsive tweaks */
+
+@media (max-width: 599px) {
+  .feeding-entry {
+    padding: 0.8rem 0.85rem;
+  }
+
+  .entry-row {
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+  }
+
+  .entry-meta {
+    margin-left: 0.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .feeding-entry {
+    padding: 1rem 1.1rem;
+    gap: 0.6rem;
+  }
+
+  .time-chip .time {
+    font-size: 1.25rem;
+  }
+
+  .amount-text .amount {
+    font-size: 1.4rem;
+  }
+
+  .btn-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+
+    i {
+      font-size: 0.9rem;
+    }
+  }
+}

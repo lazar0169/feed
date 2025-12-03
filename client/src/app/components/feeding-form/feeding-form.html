@@ -1,0 +1,80 @@
+<form [formGroup]="feedingForm" (ngSubmit)="onSubmit()" class="feeding-form">
+  <div class="form-group">
+    <label for="date">
+      <i class="fas fa-calendar"></i>
+      <span>Date</span>
+    </label>
+    <input
+      type="date"
+      id="date"
+      formControlName="date"
+      class="form-control"
+    />
+  </div>
+
+  <div class="form-group">
+    <label for="time">
+      <i class="fas fa-clock"></i>
+      <span>Time</span>
+    </label>
+    <input
+      type="time"
+      id="time"
+      formControlName="time"
+      class="form-control"
+    />
+  </div>
+
+  <div class="form-group">
+    <label for="amount">
+      <i class="fas fa-bottle-droplet"></i>
+      <span>Amount <span class="unit">(ml)</span></span>
+    </label>
+    <input
+      type="number"
+      id="amount"
+      formControlName="amount"
+      class="form-control"
+      placeholder="120"
+      min="1"
+      step="1"
+      pattern="[0-9]*"
+      inputmode="numeric"
+      (keypress)="onlyNumbers($event)"
+    />
+  </div>
+
+  <div class="form-group">
+    <label for="comment">
+      <i class="fas fa-message"></i>
+      <span>Comment (optional)</span>
+    </label>
+    <textarea
+      id="comment"
+      formControlName="comment"
+      class="form-control"
+      rows="2"
+      placeholder="Any notes..."
+    ></textarea>
+  </div>
+
+  <div class="form-actions">
+    <button
+      type="submit"
+      class="btn btn-primary"
+      [disabled]="!feedingForm.valid"
+    >
+      <i class="fas" [ngClass]="isEditMode ? 'fa-check' : 'fa-plus'"></i>
+      <span>{{ isEditMode ? 'Update' : 'Add' }} Feeding</span>
+    </button>
+    <button
+      type="button"
+      class="btn btn-secondary"
+      *ngIf="isEditMode"
+      (click)="onCancel()"
+    >
+      <i class="fas fa-times"></i>
+      <span>Cancel</span>
+    </button>
+  </div>
+</form>

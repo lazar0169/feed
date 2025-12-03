@@ -1,0 +1,35 @@
+<div class="page-container">
+  <div class="page-header">
+    <h2><i class="fas fa-calendar-days"></i> Feeding Log</h2>
+  </div>
+
+  <div *ngIf="dateGroups().length === 0" class="empty-state">
+    <i class="fas fa-calendar-xmark"></i>
+    <p>No feeding entries yet.</p>
+    <small>Start tracking on the Today page!</small>
+  </div>
+
+  <div *ngIf="editingEntry()" class="form-section">
+    <h3><i class="fas fa-pen"></i> Edit Feeding</h3>
+    <app-feeding-form
+      [entry]="editingEntry()"
+      (submitForm)="onSubmit($event)"
+      (cancel)="onCancelEdit()"
+    ></app-feeding-form>
+  </div>
+
+  <div class="log-list">
+    <div *ngFor="let group of dateGroups()" class="date-group">
+      <div class="date-header">
+        <i class="fas fa-calendar"></i>
+        <h3>{{ formatDate(group.date) }}</h3>
+        <span class="date-badge">{{ group.date }}</span>
+      </div>
+      <app-feeding-list
+        [entries]="group.entries"
+        (editEntry)="onEdit($event)"
+        (deleteEntry)="onDelete($event)"
+      ></app-feeding-list>
+    </div>
+  </div>
+</div>

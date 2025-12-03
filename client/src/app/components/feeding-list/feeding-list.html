@@ -1,0 +1,59 @@
+<div class="feeding-list">
+  <div *ngIf="entries.length === 0" class="empty-state">
+    <i class="fas fa-baby-carriage"></i>
+    <p>No feeding entries yet</p>
+    <small>Add your first feeding above to start tracking.</small>
+  </div>
+
+  <article
+    class="feeding-entry"
+    *ngFor="let entry of entries"
+    [class.is-active]="activeEntryId === entry.id"
+    (click)="onEntryClick(entry.id)"
+  >
+    <div class="entry-row">
+      <!-- Time -->
+      <div class="entry-time">
+        <div class="time-chip">
+          <i class="fas fa-clock" aria-hidden="true"></i>
+          <span class="time">{{ entry.time }}</span>
+        </div>
+      </div>
+
+      <!-- Meta: date + amount (stretches across available width) -->
+      <div class="entry-meta">
+        <span class="date" *ngIf="showDate">{{ entry.date }}</span>
+
+        <div class="entry-amount">
+          <i class="fas fa-bottle-droplet" aria-hidden="true"></i>
+          <div class="amount-text">
+            <span class="amount">{{ entry.amount }}</span>
+            <span class="unit">ml</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions (collapse/expand) -->
+      <div class="entry-actions">
+        <button
+          class="btn-icon btn-edit"
+          (click)="onEdit(entry); $event.stopPropagation()"
+        >
+          <i class="fas fa-pen"></i>
+        </button>
+
+        <button
+          class="btn-icon btn-delete"
+          (click)="onDelete(entry.id); $event.stopPropagation()"
+        >
+          <i class="fas fa-trash-alt"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="entry-comment" *ngIf="entry.comment">
+      <i class="fas fa-comment" aria-hidden="true"></i>
+      <p>{{ entry.comment }}</p>
+    </div>
+  </article>
+</div>
