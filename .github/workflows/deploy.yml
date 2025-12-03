@@ -43,4 +43,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cd client
-          npm run deploy -- --branch=public
+          npm run deploy
