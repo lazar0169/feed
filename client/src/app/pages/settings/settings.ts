@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SettingsService } from '../../services/settings.service';
@@ -15,9 +15,10 @@ export class Settings implements OnInit {
   protected notificationService = inject(NotificationService);
 
   // Local state for form
-  protected intervalEnabled = signal<boolean>(true);
+  protected isLoading = signal<boolean>(true);
+  protected intervalEnabled = signal<boolean>(false);
   protected intervalHours = signal<number>(3);
-  protected notificationsToggleEnabled = signal<boolean>(true);
+  protected notificationsToggleEnabled = signal<boolean>(false);
   protected isSaving = signal<boolean>(false);
   protected saveMessage = signal<string>('');
 
@@ -30,20 +31,31 @@ export class Settings implements OnInit {
     return this.notificationPermission() === 'granted' && this.intervalEnabled();
   });
 
+  constructor() {
+    // Use an effect to initialize form when settings are loaded
+    effect(() => {
+      const settings = this.settingsService.settings();
+      if (settings) {
+        // Initialize form with current settings
+        const currentInterval = this.settingsService.getFeedingInterval();
+        if (currentInterval === null) {
+          this.intervalEnabled.set(false);
+          this.intervalHours.set(this.settingsService.getDefaultInterval());
+        } else {
+          this.intervalEnabled.set(true);
+          this.intervalHours.set(currentInterval);
+        }
+
+        // Initialize notifications toggle
+        this.notificationsToggleEnabled.set(this.settingsService.areNotificationsEnabled());
+
+        // Settings loaded, hide loading indicator
+        this.isLoading.set(false);
+      }
+    });
+  }
+
   ngOnInit(): void {
-    // Initialize form with current settings
-    const currentInterval = this.settingsService.getFeedingInterval();
-    if (currentInterval === null) {
-      this.intervalEnabled.set(false);
-      this.intervalHours.set(this.settingsService.getDefaultInterval());
-    } else {
-      this.intervalEnabled.set(true);
-      this.intervalHours.set(currentInterval);
-    }
-
-    // Initialize notifications toggle
-    this.notificationsToggleEnabled.set(this.settingsService.areNotificationsEnabled());
-
     // Check notification support and permission
     this.notificationsSupported.set('Notification' in window);
     if ('Notification' in window) {

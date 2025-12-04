@@ -13,6 +13,7 @@ export class NotificationService {
 
   private nextFeedingTimer: any = null;
   private notificationPermission: NotificationPermission = 'default';
+  private lastNotificationTime: number | null = null; // Track when we last sent a notification
 
   constructor() {
     // Check if browser supports notifications
@@ -108,22 +109,24 @@ export class NotificationService {
     const timeUntilNextFeeding = nextFeedingTime - now;
 
     if (timeUntilNextFeeding > 0) {
-      // Schedule notification
+      // Schedule notification for future
       this.nextFeedingTimer = setTimeout(() => {
-        this.showNotification();
+        this.showNotification(nextFeedingTime);
       }, timeUntilNextFeeding);
 
       console.log(`Next feeding notification scheduled in ${Math.round(timeUntilNextFeeding / 1000 / 60)} minutes`);
     } else {
-      // The next feeding time has already passed, show notification now
-      this.showNotification();
+      // The feeding time has passed - only show notification if we haven't already shown one for this feeding time
+      if (this.lastNotificationTime === null || this.lastNotificationTime < nextFeedingTime) {
+        this.showNotification(nextFeedingTime);
+      }
     }
   }
 
   /**
    * Show a feeding reminder notification
    */
-  private showNotification(): void {
+  private showNotification(nextFeedingTime: number): void {
     if (!this.isNotificationEnabled()) {
       return;
     }
@@ -146,8 +149,10 @@ export class NotificationService {
         notification.close();
       };
 
-      // Schedule the next notification (recurring)
-      this.scheduleNextNotification();
+      // Mark this notification time so we don't spam
+      this.lastNotificationTime = nextFeedingTime;
+
+      // DO NOT schedule another notification here - it will be scheduled when a new feeding is added
     } catch (error) {
       console.error('Error showing notification:', error);
     }
