@@ -17,7 +17,6 @@ interface PeriodStats {
 })
 export class Statistics implements OnInit {
   // Modern Angular signals for reactive state
-  protected todayStats = signal<PeriodStats | undefined>(undefined);
   protected weekStats = signal<PeriodStats | undefined>(undefined);
   protected monthStats = signal<PeriodStats | undefined>(undefined);
   protected allTimeStats = signal<PeriodStats | undefined>(undefined);
@@ -36,8 +35,6 @@ export class Statistics implements OnInit {
   }
 
   private loadStatistics(): void {
-    const today = new Date().toISOString().split('T')[0];
-
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
     const weekAgoStr = weekAgo.toISOString().split('T')[0];
@@ -46,7 +43,6 @@ export class Statistics implements OnInit {
     monthAgo.setMonth(monthAgo.getMonth() - 1);
     const monthAgoStr = monthAgo.toISOString().split('T')[0];
 
-    this.todayStats.set(this.feedingService.getStatistics(today, today));
     this.weekStats.set(this.feedingService.getStatistics(weekAgoStr));
     this.monthStats.set(this.feedingService.getStatistics(monthAgoStr));
     this.allTimeStats.set(this.feedingService.getStatistics());
