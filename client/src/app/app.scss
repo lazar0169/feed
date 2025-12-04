@@ -8,6 +8,127 @@
   overflow: hidden;
 }
 
+// Update Banner
+.update-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(184, 212, 200, 0.95),
+    rgba(152, 192, 180, 0.95)
+  );
+  backdrop-filter: blur(10px);
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+              0 0 0 1px rgba(184, 212, 200, 0.5);
+  z-index: 1001;
+  animation: slideDown 0.4s cubic-bezier(0.2, 0.0, 0.2, 1);
+
+  .update-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+
+    i {
+      font-size: 1.5rem;
+      color: #1a3a2e;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    }
+
+    .update-text {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+
+      strong {
+        font-size: 0.95rem;
+        color: #1a3a2e;
+        font-weight: 700;
+      }
+
+      span {
+        font-size: 0.85rem;
+        color: #2d5a4d;
+      }
+    }
+  }
+
+  .update-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    .btn-update {
+      background: linear-gradient(135deg, #1a3a2e, #2d5a4d);
+      border: 2px solid rgba(26, 58, 46, 0.4);
+      color: #b8d4c8;
+      padding: 0.625rem 1rem;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.25s cubic-bezier(0.2, 0.0, 0.2, 1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+
+      &:hover {
+        background: linear-gradient(135deg, #2d5a4d, #3d7a6d);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        color: #fff;
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+    }
+
+    .btn-dismiss {
+      background: rgba(26, 58, 46, 0.2);
+      border: 2px solid rgba(26, 58, 46, 0.3);
+      color: #1a3a2e;
+      padding: 0.625rem;
+      border-radius: 8px;
+      width: 36px;
+      height: 36px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(26, 58, 46, 0.3);
+        transform: scale(1.1);
+      }
+
+      &:active {
+        transform: scale(0.95);
+      }
+    }
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .app-header {
   background: linear-gradient(
     135deg,

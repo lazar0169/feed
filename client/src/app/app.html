@@ -1,4 +1,26 @@
 <div class="app-container">
+  <!-- Update Notification Banner -->
+  @if (showUpdateBanner()) {
+    <div class="update-banner">
+      <div class="update-content">
+        <i class="fas fa-download"></i>
+        <div class="update-text">
+          <strong>New Version Available!</strong>
+          <span>A new version of the app is ready to install.</span>
+        </div>
+      </div>
+      <div class="update-actions">
+        <button class="btn-update" (click)="activateUpdate()">
+          <i class="fas fa-sync-alt"></i>
+          Update Now
+        </button>
+        <button class="btn-dismiss" (click)="dismissUpdate()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+  }
+
   <main class="app-content" [class.no-header]="!showNavigation()">
     <router-outlet></router-outlet>
   </main>
