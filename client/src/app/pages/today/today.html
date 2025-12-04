@@ -13,8 +13,13 @@
         <span class="stat-value">{{ todayEntries().length }}</span>
       </div>
       @if (nextFeedCountdown()) {
-        <div class="stat next-feed-stat" [ngClass]="feedingStatusClass()">
-          <i class="fas" [ngClass]="feedingStatusIcon()"></i>
+        <div class="stat next-feed-stat"
+             [class.feeding-time]="feedingStatusClass() === 'feeding-time'"
+             [class.overdue]="feedingStatusClass() === 'overdue'">
+          <i class="fas"
+             [class.fa-bell]="feedingStatusIcon() === 'fa-bell'"
+             [class.fa-clock]="feedingStatusIcon() === 'fa-clock'"
+             [class.fa-exclamation-triangle]="feedingStatusIcon() === 'fa-exclamation-triangle'"></i>
           <span class="stat-label">{{ feedingStatusLabel() }}</span>
           <span class="stat-value">{{ nextFeedCountdown() }}</span>
         </div>
@@ -35,7 +40,7 @@
       <div class="modal-content" (click)="$event.stopPropagation()">
         <div class="modal-header">
           <h3>
-            <i class="fas" [ngClass]="editingEntry() ? 'fa-pen' : 'fa-plus-circle'"></i>
+            <i class="fas" [class.fa-pen]="editingEntry()" [class.fa-plus-circle]="!editingEntry()"></i>
             {{ editingEntry() ? 'Edit' : 'Add New' }} Feeding
           </h3>
           <button class="btn-close" (click)="closeFormModal()">

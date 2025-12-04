@@ -106,17 +106,8 @@ export class AuthService {
         .single();
 
       if (profileError || !profileData) {
-        console.error('Profile lookup error:', profileError);
-        console.log('Searching for username:', username);
-        // Debug: Let's see what profiles exist
-        const { data: allProfiles } = await this.supabase
-          .from('profiles')
-          .select('username');
-        console.log('Available usernames:', allProfiles);
         throw new Error('Invalid username or password');
       }
-
-      console.log('Found email for username:', profileData.email);
 
       // Sign in with email and password
       const { data, error } = await this.supabase.auth.signInWithPassword({
@@ -125,7 +116,6 @@ export class AuthService {
       });
 
       if (error) {
-        console.error('Supabase auth error:', error);
         throw new Error('Invalid username or password');
       }
 

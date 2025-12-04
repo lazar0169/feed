@@ -47,7 +47,6 @@ export class App {
 
   private checkForUpdates(): void {
     if (!this.swUpdate.isEnabled) {
-      console.log('Service Worker updates are disabled');
       return;
     }
 
@@ -57,16 +56,11 @@ export class App {
         filter((event): event is VersionReadyEvent => event.type === 'VERSION_READY')
       )
       .subscribe(() => {
-        console.log('New version available');
         this.showUpdateBanner.set(true);
       });
 
     // Check for updates on app load
-    this.swUpdate.checkForUpdate().then(updateAvailable => {
-      if (updateAvailable) {
-        console.log('Update check: new version found');
-      }
-    });
+    this.swUpdate.checkForUpdate();
 
     // Check for updates every 6 hours
     setInterval(() => {

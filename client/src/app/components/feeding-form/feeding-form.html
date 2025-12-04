@@ -64,7 +64,7 @@
       [class]="isEditMode ? 'btn btn-update' : 'btn btn-primary'"
       [disabled]="!feedingForm.valid"
     >
-      <i class="fas" [ngClass]="isEditMode ? 'fa-check' : 'fa-plus'"></i>
+      <i class="fas" [class.fa-check]="isEditMode" [class.fa-plus]="!isEditMode"></i>
       <span>{{ isEditMode ? 'Update' : 'Add' }} Feeding</span>
     </button>
   </div>

@@ -113,8 +113,6 @@ export class NotificationService {
       this.nextFeedingTimer = setTimeout(() => {
         this.showNotification(nextFeedingTime);
       }, timeUntilNextFeeding);
-
-      console.log(`Next feeding notification scheduled in ${Math.round(timeUntilNextFeeding / 1000 / 60)} minutes`);
     } else {
       // The feeding time has passed - only show notification if we haven't already shown one for this feeding time
       if (this.lastNotificationTime === null || this.lastNotificationTime < nextFeedingTime) {
