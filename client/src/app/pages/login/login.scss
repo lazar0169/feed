@@ -160,6 +160,43 @@
     }
   }
 
+  .password-input-wrapper {
+    position: relative;
+
+    .form-control {
+      padding-right: 3rem;
+    }
+
+    .password-toggle {
+      position: absolute;
+      right: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      color: var(--text-light);
+      cursor: pointer;
+      padding: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s ease;
+
+      i {
+        font-size: 1.1rem;
+      }
+
+      &:hover {
+        color: var(--accent-lavender);
+      }
+
+      &:focus {
+        outline: none;
+        color: var(--accent-lavender);
+      }
+    }
+  }
+
   .reset-info {
     margin-bottom: 1.5rem;
     color: var(--text-light);

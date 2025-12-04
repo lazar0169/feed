@@ -90,14 +90,24 @@
             <i class="fas fa-lock"></i>
             PASSWORD
           </label>
-          <input
-            type="password"
-            id="login-password"
-            formControlName="password"
-            class="form-control"
-            placeholder="Enter your password"
-            [class.error]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
-          />
+          <div class="password-input-wrapper">
+            <input
+              [type]="showLoginPassword() ? 'text' : 'password'"
+              id="login-password"
+              formControlName="password"
+              class="form-control"
+              placeholder="Enter your password"
+              [class.error]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              (click)="toggleLoginPassword()"
+              tabindex="-1"
+            >
+              <i class="fas" [class.fa-eye]="!showLoginPassword()" [class.fa-eye-slash]="showLoginPassword()"></i>
+            </button>
+          </div>
         </div>
 
         @if (errorMessage()) {
@@ -173,14 +183,24 @@
             <i class="fas fa-lock"></i>
             PASSWORD
           </label>
-          <input
-            type="password"
-            id="signup-password"
-            formControlName="password"
-            class="form-control"
-            placeholder="Choose a password (min 6 characters)"
-            [class.error]="signupForm.get('password')?.invalid && signupForm.get('password')?.touched"
-          />
+          <div class="password-input-wrapper">
+            <input
+              [type]="showSignupPassword() ? 'text' : 'password'"
+              id="signup-password"
+              formControlName="password"
+              class="form-control"
+              placeholder="Choose a password (min 6 characters)"
+              [class.error]="signupForm.get('password')?.invalid && signupForm.get('password')?.touched"
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              (click)="toggleSignupPassword()"
+              tabindex="-1"
+            >
+              <i class="fas" [class.fa-eye]="!showSignupPassword()" [class.fa-eye-slash]="showSignupPassword()"></i>
+            </button>
+          </div>
         </div>
 
         <div class="form-group">
@@ -188,14 +208,24 @@
             <i class="fas fa-lock"></i>
             CONFIRM PASSWORD
           </label>
-          <input
-            type="password"
-            id="signup-confirm-password"
-            formControlName="confirmPassword"
-            class="form-control"
-            placeholder="Confirm your password"
-            [class.error]="signupForm.get('confirmPassword')?.invalid && signupForm.get('confirmPassword')?.touched"
-          />
+          <div class="password-input-wrapper">
+            <input
+              [type]="showSignupConfirmPassword() ? 'text' : 'password'"
+              id="signup-confirm-password"
+              formControlName="confirmPassword"
+              class="form-control"
+              placeholder="Confirm your password"
+              [class.error]="signupForm.get('confirmPassword')?.invalid && signupForm.get('confirmPassword')?.touched"
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              (click)="toggleSignupConfirmPassword()"
+              tabindex="-1"
+            >
+              <i class="fas" [class.fa-eye]="!showSignupConfirmPassword()" [class.fa-eye-slash]="showSignupConfirmPassword()"></i>
+            </button>
+          </div>
         </div>
 
         @if (errorMessage()) {

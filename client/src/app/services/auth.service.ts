@@ -141,9 +141,15 @@ export class AuthService {
 
   async signOut() {
     try {
-      const { error } = await this.supabase.auth.signOut();
-      if (error) throw error;
+      // Check if there's an active session before trying to sign out
+      const { data: { session } } = await this.supabase.auth.getSession();
 
+      if (session) {
+        const { error } = await this.supabase.auth.signOut();
+        if (error) throw error;
+      }
+
+      // Always clear local state and navigate, even if no session
       this.currentUser.set(null);
       this.currentProfile.set(null);
       this.isAuthenticated.set(false);
@@ -152,6 +158,13 @@ export class AuthService {
       return { success: true };
     } catch (error: any) {
       console.error('Sign out error:', error);
+
+      // Even if sign out fails, clear local state and redirect
+      this.currentUser.set(null);
+      this.currentProfile.set(null);
+      this.isAuthenticated.set(false);
+      this.router.navigate(['/login']);
+
       return { success: false, error: error.message };
     }
   }

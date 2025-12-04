@@ -18,6 +18,9 @@ export class Login {
   errorMessage = signal<string>('');
   successMessage = signal<string>('');
   isLoading = signal<boolean>(false);
+  showLoginPassword = signal<boolean>(false);
+  showSignupPassword = signal<boolean>(false);
+  showSignupConfirmPassword = signal<boolean>(false);
 
   constructor(
     private fb: FormBuilder,
@@ -141,5 +144,17 @@ export class Login {
     } else {
       this.errorMessage.set(result.error || 'Failed to send reset email. Please try again.');
     }
+  }
+
+  protected toggleLoginPassword(): void {
+    this.showLoginPassword.set(!this.showLoginPassword());
+  }
+
+  protected toggleSignupPassword(): void {
+    this.showSignupPassword.set(!this.showSignupPassword());
+  }
+
+  protected toggleSignupConfirmPassword(): void {
+    this.showSignupConfirmPassword.set(!this.showSignupConfirmPassword());
   }
 }
