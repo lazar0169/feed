@@ -9,13 +9,26 @@
     <small>Start tracking on the Today page!</small>
   </div>
 
-  <div *ngIf="editingEntry()" class="form-section">
-    <h3><i class="fas fa-pen"></i> Edit Feeding</h3>
-    <app-feeding-form
-      [entry]="editingEntry()"
-      (submitForm)="onSubmit($event)"
-      (cancel)="onCancelEdit()"
-    ></app-feeding-form>
+  <!-- Modal Overlay -->
+  <div class="modal-overlay" *ngIf="editingEntry()" (click)="onCancelEdit()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>
+          <i class="fas fa-pen"></i>
+          Edit Feeding
+        </h3>
+        <button class="btn-close" (click)="onCancelEdit()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <app-feeding-form
+          [entry]="editingEntry()"
+          (submitForm)="onSubmit($event)"
+          (cancel)="onCancelEdit()"
+        ></app-feeding-form>
+      </div>
+    </div>
   </div>
 
   <div class="log-list">

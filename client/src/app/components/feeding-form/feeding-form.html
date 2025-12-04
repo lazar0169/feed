@@ -61,20 +61,11 @@
   <div class="form-actions">
     <button
       type="submit"
-      class="btn btn-primary"
+      [class]="isEditMode ? 'btn btn-update' : 'btn btn-primary'"
       [disabled]="!feedingForm.valid"
     >
       <i class="fas" [ngClass]="isEditMode ? 'fa-check' : 'fa-plus'"></i>
       <span>{{ isEditMode ? 'Update' : 'Add' }} Feeding</span>
-    </button>
-    <button
-      type="button"
-      class="btn btn-secondary"
-      *ngIf="isEditMode"
-      (click)="onCancel()"
-    >
-      <i class="fas fa-times"></i>
-      <span>Cancel</span>
     </button>
   </div>
 </form>
