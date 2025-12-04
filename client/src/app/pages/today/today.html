@@ -13,9 +13,9 @@
         <span class="stat-value">{{ todayEntries().length }}</span>
       </div>
       @if (nextFeedCountdown()) {
-        <div class="stat next-feed-stat">
-          <i class="fas fa-clock"></i>
-          <span class="stat-label">Next feed in</span>
+        <div class="stat next-feed-stat" [ngClass]="feedingStatusClass()">
+          <i class="fas" [ngClass]="feedingStatusIcon()"></i>
+          <span class="stat-label">{{ feedingStatusLabel() }}</span>
           <span class="stat-value">{{ nextFeedCountdown() }}</span>
         </div>
       }

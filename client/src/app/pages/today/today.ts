@@ -32,6 +32,63 @@ export class Today implements OnInit {
     this.todayEntries().reduce((sum, entry) => sum + entry.amount, 0)
   );
 
+  // Computed: determine the label based on countdown state
+  protected feedingStatusLabel = computed(() => {
+    const countdown = this.nextFeedCountdown();
+    if (!countdown) return null;
+
+    const timeUntil = this.notificationService.getTimeUntilNextNotification();
+    if (timeUntil === null) return null;
+
+    const totalMinutes = Math.floor(timeUntil / 1000 / 60);
+
+    if (totalMinutes >= -10 && totalMinutes <= 10) {
+      return 'Status';
+    } else if (totalMinutes < -10) {
+      return 'Feeding overdue';
+    } else {
+      return 'Next feed in';
+    }
+  });
+
+  // Computed: determine the icon based on countdown state
+  protected feedingStatusIcon = computed(() => {
+    const countdown = this.nextFeedCountdown();
+    if (!countdown) return 'fa-clock';
+
+    const timeUntil = this.notificationService.getTimeUntilNextNotification();
+    if (timeUntil === null) return 'fa-clock';
+
+    const totalMinutes = Math.floor(timeUntil / 1000 / 60);
+
+    if (totalMinutes >= -10 && totalMinutes <= 10) {
+      return 'fa-bell';
+    } else if (totalMinutes < -10) {
+      return 'fa-exclamation-triangle';
+    } else {
+      return 'fa-clock';
+    }
+  });
+
+  // Computed: determine CSS class for styling
+  protected feedingStatusClass = computed(() => {
+    const countdown = this.nextFeedCountdown();
+    if (!countdown) return '';
+
+    const timeUntil = this.notificationService.getTimeUntilNextNotification();
+    if (timeUntil === null) return '';
+
+    const totalMinutes = Math.floor(timeUntil / 1000 / 60);
+
+    if (totalMinutes >= -10 && totalMinutes <= 10) {
+      return 'feeding-time';
+    } else if (totalMinutes < -10) {
+      return 'overdue';
+    } else {
+      return '';
+    }
+  });
+
   constructor() {
     // Update countdown whenever feeding entries or settings change
     effect(() => {
@@ -93,13 +150,30 @@ export class Today implements OnInit {
       return;
     }
 
-    if (timeUntilNext <= 0) {
-      this.nextFeedCountdown.set('Feeding time!');
+    // Convert milliseconds to total minutes
+    const totalMinutes = Math.floor(timeUntilNext / 1000 / 60);
+
+    // Within 10 minutes window (10 min before to 10 min after)
+    if (totalMinutes >= -10 && totalMinutes <= 10) {
+      this.nextFeedCountdown.set('FEEDING TIME');
       return;
     }
 
-    // Convert milliseconds to hours and minutes
-    const totalMinutes = Math.floor(timeUntilNext / 1000 / 60);
+    // Overdue (more than 10 minutes past feeding time)
+    if (totalMinutes < -10) {
+      const overdueMinutes = Math.abs(totalMinutes);
+      const hours = Math.floor(overdueMinutes / 60);
+      const minutes = overdueMinutes % 60;
+
+      if (hours > 0) {
+        this.nextFeedCountdown.set(`${hours}h ${minutes}m`);
+      } else {
+        this.nextFeedCountdown.set(`${minutes}m`);
+      }
+      return;
+    }
+
+    // Future feeding (more than 10 minutes away)
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
 

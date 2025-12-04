@@ -51,6 +51,41 @@
   line-height: 1;
 }
 
+// Feeding time status variations
+.stat.feeding-time {
+  border-color: rgba(76, 175, 80, 0.5);
+
+  i {
+    color: #4caf50;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  .stat-value {
+    color: #4caf50;
+  }
+}
+
+.stat.overdue {
+  border-color: rgba(244, 67, 54, 0.5);
+
+  i {
+    color: #f44336;
+  }
+
+  .stat-value {
+    color: #f44336;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
 .form-section,
 .list-section {
   margin-top: 1.5rem;

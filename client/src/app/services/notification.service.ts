@@ -94,13 +94,16 @@ export class NotificationService {
       return;
     }
 
-    // Get the latest entry by timestamp
-    const latestEntry = entries.reduce((latest, entry) =>
-      entry.timestamp > latest.timestamp ? entry : latest
-    );
+    // Get the latest entry by actual feeding time (date + time)
+    const latestEntry = entries.reduce((latest, entry) => {
+      const entryDateTime = new Date(`${entry.date}T${entry.time}`).getTime();
+      const latestDateTime = new Date(`${latest.date}T${latest.time}`).getTime();
+      return entryDateTime > latestDateTime ? entry : latest;
+    });
 
-    // Calculate when the next feeding should be
-    const nextFeedingTime = latestEntry.timestamp + (intervalHours * 60 * 60 * 1000);
+    // Calculate when the next feeding should be based on actual feeding time
+    const lastFeedingDateTime = new Date(`${latestEntry.date}T${latestEntry.time}`).getTime();
+    const nextFeedingTime = lastFeedingDateTime + (intervalHours * 60 * 60 * 1000);
     const now = Date.now();
     const timeUntilNextFeeding = nextFeedingTime - now;
 
@@ -194,15 +197,21 @@ export class NotificationService {
       return null;
     }
 
-    const latestEntry = entries.reduce((latest, entry) =>
-      entry.timestamp > latest.timestamp ? entry : latest
-    );
+    // Find the entry with the latest actual feeding time (date + time)
+    const latestEntry = entries.reduce((latest, entry) => {
+      const entryDateTime = new Date(`${entry.date}T${entry.time}`).getTime();
+      const latestDateTime = new Date(`${latest.date}T${latest.time}`).getTime();
+      return entryDateTime > latestDateTime ? entry : latest;
+    });
 
-    const nextFeedingTime = latestEntry.timestamp + (intervalHours * 60 * 60 * 1000);
+    // Calculate next feeding time based on actual feeding time
+    const lastFeedingDateTime = new Date(`${latestEntry.date}T${latestEntry.time}`).getTime();
+    const nextFeedingTime = lastFeedingDateTime + (intervalHours * 60 * 60 * 1000);
     const now = Date.now();
     const timeUntil = nextFeedingTime - now;
 
-    return timeUntil > 0 ? timeUntil : 0;
+    // Return negative values for overdue feedings
+    return timeUntil;
   }
 
   /**
