@@ -26,6 +26,7 @@ export class Today implements OnInit {
   protected editingEntry = signal<FeedingEntry | undefined>(undefined);
   protected readonly todayDate = new Date().toISOString().split('T')[0];
   protected nextFeedCountdown = signal<string | null>(null);
+  protected showFormModal = signal<boolean>(false);
 
   // Computed value automatically updates when todayEntries changes
   protected totalAmount = computed(() =>
@@ -120,6 +121,15 @@ export class Today implements OnInit {
     this.todayEntries.set(this.feedingService.getTodayEntries());
   }
 
+  protected openFormModal(): void {
+    this.showFormModal.set(true);
+  }
+
+  protected closeFormModal(): void {
+    this.showFormModal.set(false);
+    this.editingEntry.set(undefined);
+  }
+
   protected async onSubmit(formData: { date: string; time: string; amount: number; comment?: string }): Promise<void> {
     const editing = this.editingEntry();
     if (editing) {
@@ -128,14 +138,16 @@ export class Today implements OnInit {
       await this.feedingService.createEntry(formData);
     }
     this.editingEntry.set(undefined);
+    this.closeFormModal();
   }
 
   protected onEdit(entry: FeedingEntry): void {
     this.editingEntry.set(entry);
+    this.openFormModal();
   }
 
   protected onCancelEdit(): void {
-    this.editingEntry.set(undefined);
+    this.closeFormModal();
   }
 
   protected async onDelete(id: string): Promise<void> {

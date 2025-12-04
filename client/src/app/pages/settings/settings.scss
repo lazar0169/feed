@@ -352,6 +352,56 @@
   }
 }
 
+.logout-section {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 2px solid rgba(214, 189, 255, 0.15);
+
+  .btn-logout {
+    width: 100%;
+    background: linear-gradient(
+      135deg,
+      rgba(232, 180, 184, 0.3),
+      rgba(212, 160, 164, 0.3)
+    );
+    border: 2px solid rgba(232, 180, 184, 0.4);
+    color: #e8b4b8;
+    border-radius: 12px;
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.2, 0.0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(232, 180, 184, 0.2);
+
+    i {
+      font-size: 1rem;
+      filter: drop-shadow(0 2px 4px rgba(232, 180, 184, 0.3));
+    }
+
+    &:hover {
+      background: linear-gradient(
+        135deg,
+        rgba(232, 180, 184, 0.4),
+        rgba(212, 160, 164, 0.4)
+      );
+      border-color: rgba(232, 180, 184, 0.6);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(232, 180, 184, 0.3);
+      color: #ffc4c8;
+    }
+
+    &:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(232, 180, 184, 0.2);
+    }
+  }
+}
+
 @media (min-width: 768px) {
   .settings-card {
     padding: 2rem;
@@ -359,5 +409,10 @@
 
   .form-actions {
     gap: 1rem;
+  }
+
+  .logout-section {
+    margin-top: 2.5rem;
+    padding-top: 2.5rem;
   }
 }

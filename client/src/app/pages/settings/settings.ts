@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SettingsService } from '../../services/settings.service';
 import { NotificationService } from '../../services/notification.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-settings',
@@ -13,6 +14,7 @@ import { NotificationService } from '../../services/notification.service';
 export class Settings implements OnInit {
   protected settingsService = inject(SettingsService);
   protected notificationService = inject(NotificationService);
+  private authService = inject(AuthService);
 
   // Local state for form
   protected isLoading = signal<boolean>(true);
@@ -150,5 +152,9 @@ export class Settings implements OnInit {
     } else {
       return 'Click "Save Settings" to enable notifications';
     }
+  }
+
+  protected async logout(): Promise<void> {
+    await this.authService.signOut();
   }
 }
