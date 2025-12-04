@@ -21,9 +21,23 @@
   <div class="log-list">
     <div *ngFor="let group of dateGroups()" class="date-group">
       <div class="date-header">
-        <i class="fas fa-calendar"></i>
-        <h3>{{ formatDate(group.date) }}</h3>
-        <span class="date-badge">{{ group.date }}</span>
+        <div class="date-header-row">
+          <i class="fas fa-calendar"></i>
+          <h3>{{ formatDate(group.date) }}</h3>
+        </div>
+        <div class="date-header-row date-header-bottom">
+          <span class="date-badge">{{ formatDateBadge(group.date) }}</span>
+          <div class="date-header-stats">
+            <span class="stat-badge" title="Total feedings">
+              <i class="fas fa-hashtag"></i>
+              {{ group.totalFeedings }}
+            </span>
+            <span class="stat-badge" title="Total milk (ml)">
+              <i class="fas fa-bottle-droplet"></i>
+              {{ group.totalMilk }} ml
+            </span>
+          </div>
+        </div>
       </div>
       <app-feeding-list
         [entries]="group.entries"

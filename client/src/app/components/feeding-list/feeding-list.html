@@ -22,7 +22,7 @@
 
       <!-- Meta: date + amount (stretches across available width) -->
       <div class="entry-meta">
-        <span class="date" *ngIf="showDate">{{ entry.date }}</span>
+        <span class="date" *ngIf="showDate">{{ formatDate(entry.date) }}</span>
 
         <div class="entry-amount">
           <i class="fas fa-bottle-droplet" aria-hidden="true"></i>

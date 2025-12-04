@@ -8,6 +8,8 @@ import { FeedingList } from '../../components/feeding-list/feeding-list';
 interface DateGroup {
   date: string;
   entries: FeedingEntry[];
+  totalFeedings: number;
+  totalMilk: number;
 }
 
 @Component({
@@ -36,10 +38,16 @@ export class Log implements OnInit {
 
   private loadEntries(): void {
     const uniqueDates = this.feedingService.getUniqueDates();
-    this.dateGroups.set(uniqueDates.map(date => ({
-      date,
-      entries: this.feedingService.getEntriesByDate(date)
-    })));
+    this.dateGroups.set(uniqueDates.map(date => {
+      const entries = this.feedingService.getEntriesByDate(date);
+      const totalMilk = entries.reduce((sum, entry) => sum + entry.amount, 0);
+      return {
+        date,
+        entries,
+        totalFeedings: entries.length,
+        totalMilk
+      };
+    }));
   }
 
   protected onSubmit(formData: { date: string; time: string; amount: number; comment?: string }): void {
@@ -88,5 +96,14 @@ export class Log implements OnInit {
         day: 'numeric'
       });
     }
+  }
+
+  protected formatDateBadge(dateString: string): string {
+    // Format date as DD.MM.YYYY
+    const date = new Date(dateString + 'T00:00:00');
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}.${month}.${year}`;
   }
 }
