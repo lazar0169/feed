@@ -1,4 +1,17 @@
 <div class="app-container">
+  <!-- Loading Screen -->
+  @if (isLoading()) {
+    <div class="loading-overlay">
+      <div class="loading-content">
+        <div class="loading-icon">
+          <i class="fas fa-baby-carriage"></i>
+        </div>
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Loading...</p>
+      </div>
+    </div>
+  }
+
   <!-- Update Notification Banner -->
   @if (showUpdateBanner()) {
     <div class="update-banner">

@@ -17,6 +17,9 @@ export class SettingsService {
   // Signal to store current settings
   public settings = signal<UserSettings | null>(null);
 
+  // Loading state signal
+  public isLoading = signal<boolean>(false);
+
   // Default interval is 3 hours
   private readonly DEFAULT_INTERVAL_HOURS = 3;
 
@@ -28,6 +31,7 @@ export class SettingsService {
         this.loadSettings();
       } else {
         this.settings.set(null);
+        this.isLoading.set(false);
       }
     });
   }
@@ -38,6 +42,8 @@ export class SettingsService {
   async loadSettings(): Promise<void> {
     const user = this.authService.currentUser();
     if (!user) return;
+
+    this.isLoading.set(true);
 
     try {
       const supabase = this.authService.getSupabaseClient();
@@ -59,6 +65,8 @@ export class SettingsService {
       this.settings.set(data);
     } catch (error) {
       console.error('Error loading settings:', error);
+    } finally {
+      this.isLoading.set(false);
     }
   }
 
@@ -88,6 +96,8 @@ export class SettingsService {
       this.settings.set(data);
     } catch (error) {
       console.error('Error creating default settings:', error);
+    } finally {
+      this.isLoading.set(false);
     }
   }
 

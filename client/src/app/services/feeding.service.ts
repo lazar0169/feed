@@ -1,4 +1,4 @@
-import { Injectable, effect } from '@angular/core';
+import { Injectable, effect, signal } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { FeedingEntry } from '../models/feeding-entry.model';
 import { AuthService } from './auth.service';
@@ -16,6 +16,9 @@ export class FeedingService {
   private entriesSubject = new BehaviorSubject<FeedingEntry[]>([]);
   public entries$: Observable<FeedingEntry[]> = this.entriesSubject.asObservable();
 
+  // Loading state signal
+  public isLoading = signal<boolean>(false);
+
   constructor(private authService: AuthService) {
     // Modern Angular: Use effect to watch signal changes
     effect(() => {
@@ -24,6 +27,7 @@ export class FeedingService {
         this.loadEntries();
       } else {
         this.entriesSubject.next([]);
+        this.isLoading.set(false);
       }
     });
   }
@@ -34,6 +38,8 @@ export class FeedingService {
   private async loadEntries(): Promise<void> {
     const user = this.authService.currentUser();
     if (!user) return;
+
+    this.isLoading.set(true);
 
     try {
       const supabase = this.authService.getSupabaseClient();
@@ -58,6 +64,8 @@ export class FeedingService {
     } catch (error) {
       console.error('Error loading entries:', error);
       this.entriesSubject.next([]);
+    } finally {
+      this.isLoading.set(false);
     }
   }
 

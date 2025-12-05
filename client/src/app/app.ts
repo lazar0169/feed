@@ -1,10 +1,12 @@
-import { Component, inject, computed, signal } from '@angular/core';
+import { Component, inject, computed, signal, effect } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map, filter } from 'rxjs/operators';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
 import { AuthService } from './services/auth.service';
 import { NotificationService } from './services/notification.service';
+import { FeedingService } from './services/feeding.service';
+import { SettingsService } from './services/settings.service';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -19,8 +21,13 @@ export class App {
   private router = inject(Router);
   private notificationService = inject(NotificationService); // Initialize notification service
   private swUpdate = inject(SwUpdate);
+  private feedingService = inject(FeedingService);
+  private settingsService = inject(SettingsService);
 
   title = 'Baby Feeding Tracker';
+
+  // Loading state
+  protected isLoading = signal<boolean>(true);
 
   // Update notification state
   protected showUpdateBanner = signal<boolean>(false);
@@ -43,6 +50,22 @@ export class App {
   constructor() {
     // Check for service worker updates
     this.checkForUpdates();
+
+    // Track loading state - hide loader once all data is loaded
+    effect(() => {
+      const user = this.authService.currentUser();
+      const isAuthenticated = this.authService.isAuthenticated();
+      const feedingLoading = this.feedingService.isLoading();
+      const settingsLoading = this.settingsService.isLoading();
+
+      // If not authenticated, hide loader immediately (go to login)
+      if (!isAuthenticated) {
+        setTimeout(() => this.isLoading.set(false), 300);
+      } else if (user && !feedingLoading && !settingsLoading) {
+        // If authenticated and all data is loaded, hide loader
+        setTimeout(() => this.isLoading.set(false), 300);
+      }
+    });
   }
 
   private checkForUpdates(): void {
