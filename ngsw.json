@@ -1,6 +1,6 @@
 {
   "configVersion": 1,
-  "timestamp": 1766778234445,
+  "timestamp": 1766778525560,
   "index": "/index.html",
   "assetGroups": [
     {
@@ -13,7 +13,7 @@
       "urls": [
         "/favicon.ico",
         "/index.html",
-        "/main-LUPAZOAO.js",
+        "/main-PH62B2ZU.js",
         "/styles-6OA65IZI.css"
       ],
       "patterns": []
@@ -287,8 +287,8 @@
     "/AppImages/windows11/Wide310x150Logo.scale-200.png": "d33fd40efbcc280d87f696c04bd166e1605d2e79",
     "/AppImages/windows11/Wide310x150Logo.scale-400.png": "7751114a59ed24149247bc18bb47dc1c0de37ba3",
     "/favicon.ico": "2757b1b85fd85ce2b8cfa8e810f11f9348dc29f5",
-    "/index.html": "17311d7196c49cd4168dc1f48ea68abe6127d77c",
-    "/main-LUPAZOAO.js": "b61221ccd4892bfff2bf75fe7f4c676d4f46c854",
+    "/index.html": "8796353e64daa891a27cee1a759994ad54e7a737",
+    "/main-PH62B2ZU.js": "23910253ea30f490398ee1420fb4c018560ac653",
     "/styles-6OA65IZI.css": "518fd47d2dce5839a71cd2ab96d78a5b523c9023"
   },
   "navigationUrls": [
