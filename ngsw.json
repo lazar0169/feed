@@ -1,6 +1,6 @@
 {
   "configVersion": 1,
-  "timestamp": 1766777008668,
+  "timestamp": 1766777373042,
   "index": "/index.html",
   "assetGroups": [
     {
@@ -13,7 +13,7 @@
       "urls": [
         "/favicon.ico",
         "/index.html",
-        "/main-JYRHGG7H.js",
+        "/main-POJBSSRW.js",
         "/styles-63QQNALY.css"
       ],
       "patterns": []
@@ -287,8 +287,8 @@
     "/AppImages/windows11/Wide310x150Logo.scale-200.png": "d33fd40efbcc280d87f696c04bd166e1605d2e79",
     "/AppImages/windows11/Wide310x150Logo.scale-400.png": "7751114a59ed24149247bc18bb47dc1c0de37ba3",
     "/favicon.ico": "2757b1b85fd85ce2b8cfa8e810f11f9348dc29f5",
-    "/index.html": "55c45912e325833c70e176857c10b573da741fa3",
-    "/main-JYRHGG7H.js": "a1cde698ef0c9281059dba1261ca842d810f2b93",
+    "/index.html": "707224796753e7d275237e60bc3857f2bad52e7e",
+    "/main-POJBSSRW.js": "3c865c2c8c6200454dde950504c57f6537ea0594",
     "/styles-63QQNALY.css": "34d9da00dbeb65ed9036d898bab75e5642ec4d3f"
   },
   "navigationUrls": [
