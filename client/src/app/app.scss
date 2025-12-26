@@ -364,9 +364,6 @@
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   min-height: 0;
-  padding-top: env(safe-area-inset-top);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
 
   &.no-header {
     padding-bottom: 0;
