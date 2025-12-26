@@ -10,7 +10,8 @@ html, body {
   width: 100%;
   overflow-x: hidden;
   height: 100%;
-  position: relative;
+  margin: 0;
+  padding: 0;
 }
 
 :root {
@@ -269,7 +270,6 @@ textarea.form-control {
   max-width: 600px;
   margin: 0 auto;
   padding: 0.75rem;
-  padding-top: calc(0.75rem + env(safe-area-inset-top));
   padding-bottom: 1.5rem;
   width: 100%;
   box-sizing: border-box;
