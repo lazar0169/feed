@@ -1,11 +1,14 @@
 .app-container {
   width: 100vw;
   height: 100vh;
-  height: 100svh; /* Small viewport height - excludes browser UI */
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  position: relative;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 // Loading Screen
@@ -297,10 +300,10 @@
   backdrop-filter: blur(20px);
   box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.4);
   border-top: 1px solid var(--border-subtle);
-  padding: 0.375rem 0;
-  padding-bottom: calc(0.375rem + env(safe-area-inset-bottom, 0));
+  padding: 0.375rem env(safe-area-inset-right, 0) calc(0.375rem + env(safe-area-inset-bottom, 0)) env(safe-area-inset-left, 0);
   flex-shrink: 0;
   z-index: 100;
+  min-height: fit-content;
 }
 
 .nav-link {
@@ -359,12 +362,12 @@
 }
 
 .app-content {
-  flex: 1;
+  flex: 1 1 0;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   min-height: 0;
-  padding-top: env(safe-area-inset-top, 0);
+  flex-basis: 0;
 
   &.no-header {
     padding-bottom: 0;
