@@ -295,10 +295,10 @@
   backdrop-filter: blur(20px);
   box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.4);
   border-top: 1px solid var(--border-subtle);
-  padding: 0.375rem 0;
-  padding-bottom: calc(0.375rem + env(safe-area-inset-bottom));
+  padding: 0.375rem 0 0.375rem 0;
   flex-shrink: 0;
   z-index: 100;
+  margin: 0;
 }
 
 .nav-link {
@@ -362,7 +362,6 @@
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   min-height: 0;
-  padding-top: env(safe-area-inset-top);
 
   &.no-header {
     padding-bottom: 0;
