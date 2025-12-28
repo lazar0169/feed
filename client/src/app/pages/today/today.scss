@@ -121,7 +121,7 @@
 // Floating Action Button
 .fab {
   position: fixed;
-  bottom: calc(70px + env(safe-area-inset-bottom));
+  bottom: calc(70px + var(--safe-bottom, 34px));
   right: 1rem;
   width: 56px;
   height: 56px;
@@ -171,9 +171,9 @@
   z-index: 1000;
   // Add generous padding to avoid nav bar and safe areas
   padding: max(1rem, env(safe-area-inset-top))
-           max(1rem, env(safe-area-inset-right))
+           1rem
            calc(80px + env(safe-area-inset-bottom))
-           max(1rem, env(safe-area-inset-left));
+           1rem;
   animation: fadeIn 0.2s ease-out;
 }
 
@@ -307,7 +307,7 @@
     width: 72px;
     height: 72px;
     // Keep consistent positioning on desktop
-    bottom: calc(95px + env(safe-area-inset-bottom));
+    bottom: calc(95px + var(--safe-bottom, 34px));
     right: 2rem;
 
     i {

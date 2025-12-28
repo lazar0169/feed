@@ -125,9 +125,9 @@
   justify-content: center;
   z-index: 1000;
   padding: max(1rem, env(safe-area-inset-top))
-           max(1rem, env(safe-area-inset-right))
+           1rem
            calc(80px + env(safe-area-inset-bottom))
-           max(1rem, env(safe-area-inset-left));
+           1rem;
   animation: fadeIn 0.2s ease-out;
 }
 
