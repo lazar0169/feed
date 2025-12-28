@@ -359,6 +359,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   min-height: 0;
   padding-top: env(safe-area-inset-top);
 

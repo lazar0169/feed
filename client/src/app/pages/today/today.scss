@@ -104,6 +104,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   padding-bottom: 67px;
 
   h3 {

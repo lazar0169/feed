@@ -12,6 +12,8 @@ html, body {
   margin: 0;
   padding: 0;
   overflow: hidden;
+  position: fixed;
+  touch-action: none;
 }
 
 :root {
@@ -387,6 +389,7 @@ textarea.form-control {
 .modal-body {
   padding: 1rem;
   overflow-y: auto;
+  touch-action: pan-y;
 }
 
 @keyframes fadeIn {
