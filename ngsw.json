@@ -1,6 +1,6 @@
 {
   "configVersion": 1,
-  "timestamp": 1766947801414,
+  "timestamp": 1766948076519,
   "index": "/index.html",
   "assetGroups": [
     {
@@ -13,8 +13,8 @@
       "urls": [
         "/favicon.ico",
         "/index.html",
-        "/main-TDS5QQZS.js",
-        "/styles-7PJXU37Q.css"
+        "/main-YMJLQCTJ.js",
+        "/styles-WDAQTC5C.css"
       ],
       "patterns": []
     },
@@ -287,9 +287,9 @@
     "/AppImages/windows11/Wide310x150Logo.scale-200.png": "d33fd40efbcc280d87f696c04bd166e1605d2e79",
     "/AppImages/windows11/Wide310x150Logo.scale-400.png": "7751114a59ed24149247bc18bb47dc1c0de37ba3",
     "/favicon.ico": "2757b1b85fd85ce2b8cfa8e810f11f9348dc29f5",
-    "/index.html": "3deabc419b74e85635fed786db5f33c6492d7928",
-    "/main-TDS5QQZS.js": "30eba911f516e8255f66629a36e12c558ab5fd07",
-    "/styles-7PJXU37Q.css": "a6e1a879f24c52f0d5409108a661084a55cd6e13"
+    "/index.html": "0a13521c93e442a191b8e6b0211f1dbe97291bae",
+    "/main-YMJLQCTJ.js": "0b1d3ad722079803c3ec01cff0e49b6917693225",
+    "/styles-WDAQTC5C.css": "c6b5ac6c6e617c557b2500205047b8e75fb5a4a4"
   },
   "navigationUrls": [
     {
