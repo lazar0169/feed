@@ -8,7 +8,7 @@
         "watch": "ng build --watch --configuration development",
         "test": "ng test",
         "deploy": "ng build --configuration production --base-href=/ && npx angular-cli-ghpages --dir=dist/baby-feeding-app/browser --no-silent --branch=public",
-        "local": "npm start -- --host 0.0.0.0 &"
+        "local": "npm start -- --host 0.0.0.0"
     },
     "prettier": {
         "printWidth": 100,

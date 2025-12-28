@@ -299,16 +299,23 @@
   border-top: 1px solid var(--border-subtle);
   padding: 0.375rem 0;
   padding-bottom: calc(0.375rem + env(safe-area-inset-bottom));
-  margin-bottom: 0;
-  flex-shrink: 0;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   z-index: 100;
-  position: relative;
 
-  /* iOS 26.2 specific fix */
-  @supports (-webkit-touch-callout: none) {
-    padding-bottom: max(0.375rem, env(safe-area-inset-bottom));
-    margin-bottom: 0 !important;
+  /* iOS 26.2 specific fix - extend background below viewport */
+  &::after {
+    content: '';
+    position: absolute;
     bottom: 0;
+    left: 0;
+    right: 0;
+    height: 100px;
+    background: rgba(25, 26, 39, 0.98);
+    transform: translateY(100%);
+    z-index: -1;
   }
 }
 
@@ -374,6 +381,7 @@
   -webkit-overflow-scrolling: touch;
   min-height: 0;
   padding-top: env(safe-area-inset-top);
+  padding-bottom: calc(70px + env(safe-area-inset-bottom)); /* Account for fixed nav */
 
   &.no-header {
     padding-bottom: 0;
