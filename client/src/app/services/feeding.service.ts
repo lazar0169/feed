@@ -9,6 +9,9 @@ interface FeedingEntryDb extends FeedingEntry {
   updated_at?: string;
 }
 
+// Default type for entries that don't have one (backwards compatibility)
+const DEFAULT_FEEDING_TYPE = 'milk' as const;
+
 @Injectable({
   providedIn: 'root'
 })
@@ -53,9 +56,12 @@ export class FeedingService {
 
       const entries: FeedingEntry[] = (data || []).map((entry: FeedingEntryDb) => ({
         id: entry.id,
+        type: entry.type || DEFAULT_FEEDING_TYPE,
         date: entry.date,
         time: entry.time,
         amount: entry.amount,
+        name: entry.name,
+        spoons: entry.spoons,
         comment: entry.comment,
         timestamp: entry.timestamp
       }));
@@ -116,9 +122,12 @@ export class FeedingService {
 
       const dbEntry: Partial<FeedingEntryDb> = {
         user_id: user.id,
+        type: entry.type,
         date: entry.date,
         time: entry.time,
         amount: entry.amount,
+        name: entry.name,
+        spoons: entry.spoons,
         comment: entry.comment,
         timestamp,
         created_at: new Date().toISOString()
@@ -134,9 +143,12 @@ export class FeedingService {
 
       const newEntry: FeedingEntry = {
         id: data.id,
+        type: data.type || DEFAULT_FEEDING_TYPE,
         date: data.date,
         time: data.time,
         amount: data.amount,
+        name: data.name,
+        spoons: data.spoons,
         comment: data.comment,
         timestamp: data.timestamp
       };
@@ -179,6 +191,8 @@ export class FeedingService {
         date: updatedEntry.date,
         time: updatedEntry.time,
         amount: updatedEntry.amount,
+        name: updatedEntry.name,
+        spoons: updatedEntry.spoons,
         comment: updatedEntry.comment,
         timestamp: updatedEntry.timestamp,
         updated_at: new Date().toISOString()
@@ -253,6 +267,14 @@ export class FeedingService {
     totalAmount: number;
     averageAmount: number;
     averageFeedingsPerDay: number;
+    // Milk specific
+    milkFeedings: number;
+    totalMilk: number;
+    averageMilk: number;
+    // Solids specific
+    solidFeedings: number;
+    totalSolidsGrams: number;
+    totalSolidsSpoons: number;
   } {
     let entries = this.entriesSubject.value;
 
@@ -263,18 +285,37 @@ export class FeedingService {
       entries = entries.filter(entry => entry.date <= endDate);
     }
 
+    const milkEntries = entries.filter(e => e.type !== 'solid');
+    const solidEntries = entries.filter(e => e.type === 'solid');
+
     const totalFeedings = entries.length;
-    const totalAmount = entries.reduce((sum, entry) => sum + entry.amount, 0);
-    const averageAmount = totalFeedings > 0 ? totalAmount / totalFeedings : 0;
+    const totalAmount = milkEntries.reduce((sum, entry) => sum + entry.amount, 0);
+    const averageAmount = milkEntries.length > 0 ? totalAmount / milkEntries.length : 0;
 
     const uniqueDates = new Set(entries.map(entry => entry.date));
     const averageFeedingsPerDay = uniqueDates.size > 0 ? totalFeedings / uniqueDates.size : 0;
+
+    // Milk stats
+    const milkFeedings = milkEntries.length;
+    const totalMilk = totalAmount;
+    const averageMilk = averageAmount;
+
+    // Solids stats
+    const solidFeedings = solidEntries.length;
+    const totalSolidsGrams = solidEntries.reduce((sum, entry) => sum + (entry.amount || 0), 0);
+    const totalSolidsSpoons = solidEntries.reduce((sum, entry) => sum + (entry.spoons || 0), 0);
 
     return {
       totalFeedings,
       totalAmount,
       averageAmount: Math.round(averageAmount * 10) / 10,
-      averageFeedingsPerDay: Math.round(averageFeedingsPerDay * 10) / 10
+      averageFeedingsPerDay: Math.round(averageFeedingsPerDay * 10) / 10,
+      milkFeedings,
+      totalMilk,
+      averageMilk: Math.round(averageMilk * 10) / 10,
+      solidFeedings,
+      totalSolidsGrams,
+      totalSolidsSpoons
     };
   }
 

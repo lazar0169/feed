@@ -5,7 +5,7 @@ import { interval } from 'rxjs';
 import { FeedingService } from '../../services/feeding.service';
 import { NotificationService } from '../../services/notification.service';
 import { SettingsService } from '../../services/settings.service';
-import { FeedingEntry } from '../../models/feeding-entry.model';
+import { FeedingEntry, FeedingType } from '../../models/feeding-entry.model';
 import { FeedingForm } from '../../components/feeding-form/feeding-form';
 import { FeedingList } from '../../components/feeding-list/feeding-list';
 
@@ -27,11 +27,22 @@ export class Today implements OnInit {
   protected readonly todayDate = new Date().toISOString().split('T')[0];
   protected nextFeedCountdown = signal<string | null>(null);
   protected showFormModal = signal<boolean>(false);
+  protected showTypeSelector = signal<boolean>(false);
+  protected selectedFeedingType = signal<FeedingType | null>(null);
 
-  // Computed value automatically updates when todayEntries changes
-  protected totalAmount = computed(() =>
-    this.todayEntries().reduce((sum, entry) => sum + entry.amount, 0)
+  // Computed values automatically update when todayEntries changes
+  protected totalMilk = computed(() =>
+    this.todayEntries()
+      .filter(e => e.type !== 'solid')
+      .reduce((sum, entry) => sum + entry.amount, 0)
   );
+
+  protected totalSolids = computed(() => {
+    const solids = this.todayEntries().filter(e => e.type === 'solid');
+    const grams = solids.reduce((sum, entry) => sum + (entry.amount || 0), 0);
+    const spoons = solids.reduce((sum, entry) => sum + (entry.spoons || 0), 0);
+    return { grams, spoons, count: solids.length };
+  });
 
   // Computed: determine the label based on countdown state
   protected feedingStatusLabel = computed(() => {
@@ -121,6 +132,20 @@ export class Today implements OnInit {
     this.todayEntries.set(this.feedingService.getTodayEntries());
   }
 
+  protected openTypeSelector(): void {
+    this.showTypeSelector.set(true);
+  }
+
+  protected closeTypeSelector(): void {
+    this.showTypeSelector.set(false);
+  }
+
+  protected selectType(type: FeedingType): void {
+    this.selectedFeedingType.set(type);
+    this.showTypeSelector.set(false);
+    this.showFormModal.set(true);
+  }
+
   protected openFormModal(): void {
     this.showFormModal.set(true);
   }
@@ -128,14 +153,16 @@ export class Today implements OnInit {
   protected closeFormModal(): void {
     this.showFormModal.set(false);
     this.editingEntry.set(undefined);
+    this.selectedFeedingType.set(null);
   }
 
-  protected async onSubmit(formData: { date: string; time: string; amount: number; comment?: string }): Promise<void> {
+  protected async onSubmit(formData: { date: string; time: string; amount: number; name?: string; spoons?: number; comment?: string }): Promise<void> {
     const editing = this.editingEntry();
     if (editing) {
       await this.feedingService.updateEntry(editing.id, formData);
     } else {
-      await this.feedingService.createEntry(formData);
+      const type = this.selectedFeedingType() || 'milk';
+      await this.feedingService.createEntry({ ...formData, type });
     }
     this.editingEntry.set(undefined);
     this.closeFormModal();
@@ -143,6 +170,7 @@ export class Today implements OnInit {
 
   protected onEdit(entry: FeedingEntry): void {
     this.editingEntry.set(entry);
+    this.selectedFeedingType.set(entry.type);
     this.openFormModal();
   }
 

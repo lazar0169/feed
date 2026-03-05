@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, AfterViewChecked, ElementRef, QueryList, ViewChildren } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FeedingEntry } from '../../models/feeding-entry.model';
 
@@ -8,17 +8,38 @@ import { FeedingEntry } from '../../models/feeding-entry.model';
   templateUrl: './feeding-list.html',
   styleUrl: './feeding-list.scss',
 })
-export class FeedingList {
+export class FeedingList implements AfterViewChecked {
   @Input() entries: FeedingEntry[] = [];
   @Input() showDate = false;
   @Output() editEntry = new EventEmitter<FeedingEntry>();
   @Output() deleteEntry = new EventEmitter<string>();
+  @ViewChildren('foodNameChip') foodNameChips!: QueryList<ElementRef<HTMLDivElement>>;
 
   // currently selected / expanded entry (shows buttons)
   activeEntryId: string | null = null;
 
+  ngAfterViewChecked(): void {
+    this.checkOverflow();
+  }
+
+  private checkOverflow(): void {
+    if (!this.foodNameChips) return;
+
+    this.foodNameChips.forEach(chipRef => {
+      const chip = chipRef.nativeElement;
+      const wrapper = chip.querySelector('.food-name-wrapper') as HTMLElement;
+      const text = chip.querySelector('.food-name-text') as HTMLElement;
+      if (wrapper && text) {
+        const isOverflowing = text.scrollWidth > wrapper.clientWidth;
+        chip.classList.toggle('is-overflowing', isOverflowing);
+      }
+    });
+  }
+
   onEntryClick(entryId: string): void {
     this.activeEntryId = this.activeEntryId === entryId ? null : entryId;
+    // Re-check overflow after click since container size may change
+    setTimeout(() => this.checkOverflow(), 200);
   }
 
   onEdit(entry: FeedingEntry): void {

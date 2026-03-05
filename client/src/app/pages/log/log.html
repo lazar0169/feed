@@ -18,7 +18,7 @@
         <div class="modal-header">
           <h3>
             <i class="fas fa-pen"></i>
-            Edit Feeding
+            Edit {{ editingEntry()?.type === 'solid' ? 'Solid Food' : 'Milk' }}
           </h3>
           <button class="btn-close" (click)="onCancelEdit()">
             <i class="fas fa-times"></i>
@@ -27,6 +27,7 @@
         <div class="modal-body">
           <app-feeding-form
             [entry]="editingEntry()"
+            [feedingType]="editingEntry()?.type || 'milk'"
             (submitForm)="onSubmit($event)"
             (cancel)="onCancelEdit()"
           ></app-feeding-form>
@@ -46,14 +47,22 @@
           <div class="date-header-row date-header-bottom">
             <span class="date-badge">{{ formatDateBadge(group.date) }}</span>
             <div class="date-header-stats">
-              <span class="stat-badge" title="Total feedings">
-                <i class="fas fa-hashtag"></i>
-                {{ group.totalFeedings }}
-              </span>
               <span class="stat-badge" title="Total milk (ml)">
                 <i class="fas fa-bottle-droplet"></i>
                 {{ group.totalMilk }} ml
               </span>
+              @if (group.totalSolidsGrams > 0 || group.totalSolidsSpoons > 0) {
+                <span class="stat-badge" title="Total solids">
+                  <i class="fas fa-bowl-food"></i>
+                  @if (group.totalSolidsGrams > 0 && group.totalSolidsSpoons > 0) {
+                    {{ group.totalSolidsGrams }}g / {{ group.totalSolidsSpoons }}sp
+                  } @else if (group.totalSolidsGrams > 0) {
+                    {{ group.totalSolidsGrams }} g
+                  } @else {
+                    {{ group.totalSolidsSpoons }} sp
+                  }
+                </span>
+              }
             </div>
           </div>
         </div>

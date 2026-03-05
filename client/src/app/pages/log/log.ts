@@ -10,6 +10,8 @@ interface DateGroup {
   entries: FeedingEntry[];
   totalFeedings: number;
   totalMilk: number;
+  totalSolidsGrams: number;
+  totalSolidsSpoons: number;
 }
 
 @Component({
@@ -40,22 +42,28 @@ export class Log implements OnInit {
     const uniqueDates = this.feedingService.getUniqueDates();
     this.dateGroups.set(uniqueDates.map(date => {
       const entries = this.feedingService.getEntriesByDate(date);
-      const totalMilk = entries.reduce((sum, entry) => sum + entry.amount, 0);
+      const milkEntries = entries.filter(e => e.type !== 'solid');
+      const solidEntries = entries.filter(e => e.type === 'solid');
+      const totalMilk = milkEntries.reduce((sum, entry) => sum + entry.amount, 0);
+      const totalSolidsGrams = solidEntries.reduce((sum, entry) => sum + (entry.amount || 0), 0);
+      const totalSolidsSpoons = solidEntries.reduce((sum, entry) => sum + (entry.spoons || 0), 0);
       return {
         date,
         entries,
         totalFeedings: entries.length,
-        totalMilk
+        totalMilk,
+        totalSolidsGrams,
+        totalSolidsSpoons
       };
     }));
   }
 
-  protected onSubmit(formData: { date: string; time: string; amount: number; comment?: string }): void {
+  protected onSubmit(formData: { date: string; time: string; amount: number; name?: string; spoons?: number; comment?: string }): void {
     const editing = this.editingEntry();
     if (editing) {
       this.feedingService.updateEntry(editing.id, formData);
     } else {
-      this.feedingService.createEntry(formData);
+      this.feedingService.createEntry({ ...formData, type: 'milk' });
     }
     this.editingEntry.set(undefined);
   }

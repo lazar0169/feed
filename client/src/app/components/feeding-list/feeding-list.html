@@ -22,18 +22,37 @@
           </div>
         </div>
 
-        <!-- Meta: date + amount (stretches across available width) -->
+        <!-- Meta: date + name (for solids) + amount -->
         <div class="entry-meta">
           @if (showDate) {
             <span class="date">{{ formatDate(entry.date) }}</span>
           }
 
+          @if (entry.type === 'solid') {
+            <div class="entry-name-chip" #foodNameChip>
+              <i class="fas fa-bowl-food" aria-hidden="true"></i>
+              <span class="food-name-wrapper">
+                <span class="food-name-text">{{ entry.name }}</span>
+              </span>
+            </div>
+          }
+
           <div class="entry-amount">
-            <i class="fas fa-bottle-droplet" aria-hidden="true"></i>
-            <div class="amount-text">
+            @if (entry.type === 'solid') {
+              @if (entry.spoons) {
+                <i class="fas fa-spoon" aria-hidden="true"></i>
+                <span class="amount">{{ entry.spoons }}</span>
+                <span class="unit">sp</span>
+              } @else {
+                <i class="fas fa-scale-balanced" aria-hidden="true"></i>
+                <span class="amount">{{ entry.amount }}</span>
+                <span class="unit">g</span>
+              }
+            } @else {
+              <i class="fas fa-bottle-droplet" aria-hidden="true"></i>
               <span class="amount">{{ entry.amount }}</span>
               <span class="unit">ml</span>
-            </div>
+            }
           </div>
         </div>
 

@@ -4,13 +4,23 @@
     <div class="today-stats">
       <div class="stat">
         <i class="fas fa-bottle-droplet"></i>
-        <span class="stat-label">Total</span>
-        <span class="stat-value">{{ totalAmount() }} ml</span>
+        <span class="stat-label">Milk</span>
+        <span class="stat-value">{{ totalMilk() }} ml</span>
       </div>
       <div class="stat">
-        <i class="fas fa-list-check"></i>
-        <span class="stat-label">Count</span>
-        <span class="stat-value">{{ todayEntries().length }}</span>
+        <i class="fas fa-bowl-food"></i>
+        <span class="stat-label">Solids</span>
+        <span class="stat-value">
+          @if (totalSolids().grams > 0 && totalSolids().spoons > 0) {
+            {{ totalSolids().grams }}g / {{ totalSolids().spoons }}sp
+          } @else if (totalSolids().grams > 0) {
+            {{ totalSolids().grams }} g
+          } @else if (totalSolids().spoons > 0) {
+            {{ totalSolids().spoons }} sp
+          } @else {
+            0
+          }
+        </span>
       </div>
       @if (nextFeedCountdown()) {
         <div class="stat next-feed-stat"
@@ -28,10 +38,37 @@
   </div>
 
   <!-- Floating Action Button -->
-  @if (!showFormModal()) {
-    <button class="fab" (click)="openFormModal()">
+  @if (!showFormModal() && !showTypeSelector()) {
+    <button class="fab" (click)="openTypeSelector()">
       <i class="fas fa-plus"></i>
     </button>
+  }
+
+  <!-- Type Selector Modal -->
+  @if (showTypeSelector()) {
+    <div class="modal-overlay" (click)="closeTypeSelector()">
+      <div class="modal-content type-selector-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>
+            <i class="fas fa-utensils"></i>
+            What type of feeding?
+          </h3>
+          <button class="btn-close" (click)="closeTypeSelector()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body type-selector-body">
+          <button class="type-btn" (click)="selectType('milk')">
+            <i class="fas fa-bottle-droplet"></i>
+            <span>Milk</span>
+          </button>
+          <button class="type-btn" (click)="selectType('solid')">
+            <i class="fas fa-bowl-food"></i>
+            <span>Solid Food</span>
+          </button>
+        </div>
+      </div>
+    </div>
   }
 
   <!-- Modal Overlay -->
@@ -41,7 +78,7 @@
         <div class="modal-header">
           <h3>
             <i class="fas" [class.fa-pen]="editingEntry()" [class.fa-plus-circle]="!editingEntry()"></i>
-            {{ editingEntry() ? 'Edit' : 'Add New' }} Feeding
+            {{ editingEntry() ? 'Edit' : 'Add' }} {{ selectedFeedingType() === 'solid' ? 'Solid Food' : 'Milk' }}
           </h3>
           <button class="btn-close" (click)="closeFormModal()">
             <i class="fas fa-times"></i>
@@ -50,6 +87,7 @@
         <div class="modal-body">
           <app-feeding-form
             [entry]="editingEntry()"
+            [feedingType]="selectedFeedingType()"
             [defaultDate]="todayDate"
             (submitForm)="onSubmit($event)"
             (cancel)="closeFormModal()"

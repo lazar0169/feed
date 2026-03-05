@@ -7,6 +7,14 @@ interface PeriodStats {
   totalAmount: number;
   averageAmount: number;
   averageFeedingsPerDay: number;
+  // Milk specific
+  milkFeedings: number;
+  totalMilk: number;
+  averageMilk: number;
+  // Solids specific
+  solidFeedings: number;
+  totalSolidsGrams: number;
+  totalSolidsSpoons: number;
 }
 
 @Component({

@@ -25,24 +25,107 @@
     />
   </div>
 
-  <div class="form-group">
-    <label for="amount">
-      <i class="fas fa-bottle-droplet"></i>
-      <span>Amount <span class="unit">(ml)</span></span>
-    </label>
-    <input
-      type="number"
-      id="amount"
-      formControlName="amount"
-      class="form-control"
-      placeholder="120"
-      min="1"
-      step="1"
-      pattern="[0-9]*"
-      inputmode="numeric"
-      (keypress)="onlyNumbers($event)"
-    />
-  </div>
+  @if (feedingType === 'solid') {
+    <div class="form-group">
+      <label for="name">
+        <i class="fas fa-tag"></i>
+        <span>Food Name</span>
+      </label>
+      <input
+        type="text"
+        id="name"
+        formControlName="name"
+        class="form-control"
+        placeholder="e.g., Banana puree"
+      />
+    </div>
+
+    <div class="form-group">
+      <label>
+        <i class="fas fa-ruler"></i>
+        <span>Measure by</span>
+      </label>
+      <div class="measure-toggle">
+        <button
+          type="button"
+          class="toggle-btn"
+          [class.active]="solidMeasureType === 'grams'"
+          (click)="onMeasureTypeChange('grams')"
+        >
+          <i class="fas fa-scale-balanced"></i>
+          <span>Grams</span>
+        </button>
+        <button
+          type="button"
+          class="toggle-btn"
+          [class.active]="solidMeasureType === 'spoons'"
+          (click)="onMeasureTypeChange('spoons')"
+        >
+          <i class="fas fa-spoon"></i>
+          <span>Spoons</span>
+        </button>
+      </div>
+    </div>
+
+    @if (solidMeasureType === 'grams') {
+      <div class="form-group">
+        <label for="amount">
+          <i class="fas fa-scale-balanced"></i>
+          <span>Weight <span class="unit">(g)</span></span>
+        </label>
+        <input
+          type="number"
+          id="amount"
+          formControlName="amount"
+          class="form-control"
+          placeholder="50"
+          min="1"
+          step="1"
+          pattern="[0-9]*"
+          inputmode="numeric"
+          (keypress)="onlyNumbers($event)"
+        />
+      </div>
+    } @else {
+      <div class="form-group">
+        <label for="spoons">
+          <i class="fas fa-spoon"></i>
+          <span>Spoons</span>
+        </label>
+        <input
+          type="number"
+          id="spoons"
+          formControlName="spoons"
+          class="form-control"
+          placeholder="5"
+          min="1"
+          step="1"
+          pattern="[0-9]*"
+          inputmode="numeric"
+          (keypress)="onlyNumbers($event)"
+        />
+      </div>
+    }
+  } @else {
+    <div class="form-group">
+      <label for="amount">
+        <i class="fas fa-bottle-droplet"></i>
+        <span>Amount <span class="unit">(ml)</span></span>
+      </label>
+      <input
+        type="number"
+        id="amount"
+        formControlName="amount"
+        class="form-control"
+        placeholder="120"
+        min="1"
+        step="1"
+        pattern="[0-9]*"
+        inputmode="numeric"
+        (keypress)="onlyNumbers($event)"
+      />
+    </div>
+  }
 
   <!-- Comment input hidden - uncomment when needed
   <div class="form-group">
@@ -67,7 +150,7 @@
       [disabled]="!feedingForm.valid"
     >
       <i class="fas" [class.fa-check]="isEditMode" [class.fa-plus]="!isEditMode"></i>
-      <span>{{ isEditMode ? 'Update' : 'Add' }} Feeding</span>
+      <span>{{ isEditMode ? 'Update' : 'Add' }} {{ feedingType === 'solid' ? 'Solid' : 'Milk' }}</span>
     </button>
   </div>
 </form>

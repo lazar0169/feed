@@ -145,36 +145,85 @@
 .entry-amount {
   margin-left: auto;
   display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
+  align-items: baseline;
+  gap: 0.35rem;
   padding: 0.45rem 0.9rem;
   border-radius: 999px;
   background: var(--bg-dark);
   flex-shrink: 0;
+
+  i {
+    font-size: 0.9rem;
+    color: var(--accent-beige, #f6e0cf);
+    align-self: center;
+  }
+
+  .amount {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+  }
+
+  .unit {
+    font-size: 0.8rem;
+    color: var(--text-light);
+  }
 }
 
-.entry-amount i {
-  font-size: 0.9rem;
-  color: var(--accent-beige, #f6e0cf);
-  margin-top: 0.05rem;
+/* Food name chip for solids - takes middle space */
+.entry-name-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  background: var(--bg-dark);
+  min-width: 0;
+  flex: 1;
+  max-width: 100%;
+
+  i {
+    font-size: 0.9rem;
+    color: var(--accent-beige);
+    flex-shrink: 0;
+  }
+
+  .food-name-wrapper {
+    overflow: hidden;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .food-name-text {
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-light);
+    white-space: nowrap;
+  }
+
+  &.is-overflowing .food-name-text {
+    animation: marquee 5s linear infinite;
+  }
 }
 
-.amount-text {
-  display: flex;
-  align-items: baseline;
-  gap: 0.25rem;
+@keyframes marquee {
+  0%, 15% {
+    transform: translateX(0);
+  }
+  40%, 60% {
+    transform: translateX(calc(-100% + 50px));
+  }
+  85%, 100% {
+    transform: translateX(0);
+  }
 }
 
-.amount-text .amount {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #fff;
-  line-height: 1;
-}
-
-.amount-text .unit {
-  font-size: 0.8rem;
-  color: var(--text-light);
+/* When entry is active (buttons visible), shrink the name more */
+.feeding-entry.is-active .entry-name-chip {
+  flex: 0 1 auto;
+  max-width: 90px;
 }
 
 /* Actions: collapse/expand */

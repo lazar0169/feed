@@ -18,27 +18,54 @@
             </div>
             <span class="stat-value">{{ weekStats()!.totalFeedings }}</span>
           </div>
-          <div class="stat-row">
-            <div class="stat-label">
-              <i class="fas fa-bottle-droplet"></i>
-              <span>Total Amount</span>
-            </div>
-            <span class="stat-value">{{ weekStats()!.totalAmount }} ml</span>
+          <div class="stat-section-header">
+            <i class="fas fa-bottle-droplet"></i>
+            <span>Milk</span>
           </div>
           <div class="stat-row">
             <div class="stat-label">
-              <i class="fas fa-chart-bar"></i>
-              <span>Average per Feeding</span>
+              <span>Feedings</span>
             </div>
-            <span class="stat-value">{{ weekStats()!.averageAmount }} ml</span>
+            <span class="stat-value">{{ weekStats()!.milkFeedings }}</span>
           </div>
           <div class="stat-row">
             <div class="stat-label">
-              <i class="fas fa-calendar-day"></i>
-              <span>Average per Day</span>
+              <span>Total</span>
             </div>
-            <span class="stat-value">{{ weekStats()!.averageFeedingsPerDay }}</span>
+            <span class="stat-value">{{ weekStats()!.totalMilk }} ml</span>
           </div>
+          <div class="stat-row">
+            <div class="stat-label">
+              <span>Average</span>
+            </div>
+            <span class="stat-value">{{ weekStats()!.averageMilk }} ml</span>
+          </div>
+          <div class="stat-section-header">
+            <i class="fas fa-bowl-food"></i>
+            <span>Solids</span>
+          </div>
+          <div class="stat-row">
+            <div class="stat-label">
+              <span>Feedings</span>
+            </div>
+            <span class="stat-value">{{ weekStats()!.solidFeedings }}</span>
+          </div>
+          @if (weekStats()!.totalSolidsGrams > 0) {
+            <div class="stat-row">
+              <div class="stat-label">
+                <span>Total (grams)</span>
+              </div>
+              <span class="stat-value">{{ weekStats()!.totalSolidsGrams }} g</span>
+            </div>
+          }
+          @if (weekStats()!.totalSolidsSpoons > 0) {
+            <div class="stat-row">
+              <div class="stat-label">
+                <span>Total (spoons)</span>
+              </div>
+              <span class="stat-value">{{ weekStats()!.totalSolidsSpoons }} sp</span>
+            </div>
+          }
         </div>
       </div>
     }
@@ -57,27 +84,54 @@
             </div>
             <span class="stat-value">{{ monthStats()!.totalFeedings }}</span>
           </div>
-          <div class="stat-row">
-            <div class="stat-label">
-              <i class="fas fa-bottle-droplet"></i>
-              <span>Total Amount</span>
-            </div>
-            <span class="stat-value">{{ monthStats()!.totalAmount }} ml</span>
+          <div class="stat-section-header">
+            <i class="fas fa-bottle-droplet"></i>
+            <span>Milk</span>
           </div>
           <div class="stat-row">
             <div class="stat-label">
-              <i class="fas fa-chart-bar"></i>
-              <span>Average per Feeding</span>
+              <span>Feedings</span>
             </div>
-            <span class="stat-value">{{ monthStats()!.averageAmount }} ml</span>
+            <span class="stat-value">{{ monthStats()!.milkFeedings }}</span>
           </div>
           <div class="stat-row">
             <div class="stat-label">
-              <i class="fas fa-calendar-day"></i>
-              <span>Average per Day</span>
+              <span>Total</span>
             </div>
-            <span class="stat-value">{{ monthStats()!.averageFeedingsPerDay }}</span>
+            <span class="stat-value">{{ monthStats()!.totalMilk }} ml</span>
           </div>
+          <div class="stat-row">
+            <div class="stat-label">
+              <span>Average</span>
+            </div>
+            <span class="stat-value">{{ monthStats()!.averageMilk }} ml</span>
+          </div>
+          <div class="stat-section-header">
+            <i class="fas fa-bowl-food"></i>
+            <span>Solids</span>
+          </div>
+          <div class="stat-row">
+            <div class="stat-label">
+              <span>Feedings</span>
+            </div>
+            <span class="stat-value">{{ monthStats()!.solidFeedings }}</span>
+          </div>
+          @if (monthStats()!.totalSolidsGrams > 0) {
+            <div class="stat-row">
+              <div class="stat-label">
+                <span>Total (grams)</span>
+              </div>
+              <span class="stat-value">{{ monthStats()!.totalSolidsGrams }} g</span>
+            </div>
+          }
+          @if (monthStats()!.totalSolidsSpoons > 0) {
+            <div class="stat-row">
+              <div class="stat-label">
+                <span>Total (spoons)</span>
+              </div>
+              <span class="stat-value">{{ monthStats()!.totalSolidsSpoons }} sp</span>
+            </div>
+          }
         </div>
       </div>
     }
@@ -96,27 +150,54 @@
             </div>
             <span class="stat-value">{{ allTimeStats()!.totalFeedings }}</span>
           </div>
-          <div class="stat-row">
-            <div class="stat-label">
-              <i class="fas fa-bottle-droplet"></i>
-              <span>Total Amount</span>
-            </div>
-            <span class="stat-value">{{ allTimeStats()!.totalAmount }} ml</span>
+          <div class="stat-section-header">
+            <i class="fas fa-bottle-droplet"></i>
+            <span>Milk</span>
           </div>
           <div class="stat-row">
             <div class="stat-label">
-              <i class="fas fa-chart-bar"></i>
-              <span>Average per Feeding</span>
+              <span>Feedings</span>
             </div>
-            <span class="stat-value">{{ allTimeStats()!.averageAmount }} ml</span>
+            <span class="stat-value">{{ allTimeStats()!.milkFeedings }}</span>
           </div>
           <div class="stat-row">
             <div class="stat-label">
-              <i class="fas fa-calendar-day"></i>
-              <span>Average per Day</span>
+              <span>Total</span>
             </div>
-            <span class="stat-value">{{ allTimeStats()!.averageFeedingsPerDay }}</span>
+            <span class="stat-value">{{ allTimeStats()!.totalMilk }} ml</span>
           </div>
+          <div class="stat-row">
+            <div class="stat-label">
+              <span>Average</span>
+            </div>
+            <span class="stat-value">{{ allTimeStats()!.averageMilk }} ml</span>
+          </div>
+          <div class="stat-section-header">
+            <i class="fas fa-bowl-food"></i>
+            <span>Solids</span>
+          </div>
+          <div class="stat-row">
+            <div class="stat-label">
+              <span>Feedings</span>
+            </div>
+            <span class="stat-value">{{ allTimeStats()!.solidFeedings }}</span>
+          </div>
+          @if (allTimeStats()!.totalSolidsGrams > 0) {
+            <div class="stat-row">
+              <div class="stat-label">
+                <span>Total (grams)</span>
+              </div>
+              <span class="stat-value">{{ allTimeStats()!.totalSolidsGrams }} g</span>
+            </div>
+          }
+          @if (allTimeStats()!.totalSolidsSpoons > 0) {
+            <div class="stat-row">
+              <div class="stat-label">
+                <span>Total (spoons)</span>
+              </div>
+              <span class="stat-value">{{ allTimeStats()!.totalSolidsSpoons }} sp</span>
+            </div>
+          }
         </div>
       </div>
     }
