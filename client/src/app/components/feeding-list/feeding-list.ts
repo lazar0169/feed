@@ -30,8 +30,12 @@ export class FeedingList implements AfterViewChecked {
       const wrapper = chip.querySelector('.food-name-wrapper') as HTMLElement;
       const text = chip.querySelector('.food-name-text') as HTMLElement;
       if (wrapper && text) {
-        const isOverflowing = text.scrollWidth > wrapper.clientWidth;
+        const overflowAmount = text.scrollWidth - wrapper.clientWidth;
+        const isOverflowing = overflowAmount > 0;
         chip.classList.toggle('is-overflowing', isOverflowing);
+        if (isOverflowing) {
+          text.style.setProperty('--marquee-offset', `-${overflowAmount}px`);
+        }
       }
     });
   }
