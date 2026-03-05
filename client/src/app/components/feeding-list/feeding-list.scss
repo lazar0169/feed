@@ -204,7 +204,7 @@
   }
 
   &.is-overflowing .food-name-text {
-    animation: marquee 8s ease-in-out infinite;
+    animation: marquee 10s ease-in-out infinite;
     /* Animation scrolls by the overflow amount: scrollWidth - clientWidth */
     /* Using CSS var set by JS for precise calculation */
   }

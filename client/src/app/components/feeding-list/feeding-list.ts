@@ -34,7 +34,8 @@ export class FeedingList implements AfterViewChecked {
         const isOverflowing = overflowAmount > 0;
         chip.classList.toggle('is-overflowing', isOverflowing);
         if (isOverflowing) {
-          text.style.setProperty('--marquee-offset', `-${overflowAmount}px`);
+          // Add 8px buffer to ensure full text is visible
+          text.style.setProperty('--marquee-offset', `-${overflowAmount + 8}px`);
         }
       }
     });
