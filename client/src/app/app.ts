@@ -53,18 +53,25 @@ export class App {
 
     // Track loading state - hide loader once all data is loaded
     effect(() => {
-      const user = this.authService.currentUser();
+      const initialized = this.authService.authInitialized();
       const isAuthenticated = this.authService.isAuthenticated();
+      const feedingLoading = this.feedingService.isLoading();
       const settingsLoading = this.settingsService.isLoading();
 
-      // The splash hides as soon as auth + settings resolve. Feeding history
-      // loads in the background (bounded to a recent window) and the Today page
-      // fills in when entries$ emits, so a growing history no longer delays
-      // first paint.
+      // Keep the splash up until the initial session restore has resolved —
+      // otherwise a returning user briefly looks logged-out and the splash
+      // would hide before their data loads.
+      if (!initialized) {
+        return;
+      }
+
+      // One loader: hide once we know the auth state, and (when logged in)
+      // once the bounded feeding fetch + settings are ready, so pages render
+      // populated instead of flashing an empty state.
       if (!isAuthenticated) {
-        setTimeout(() => this.isLoading.set(false), 300);
-      } else if (user && !settingsLoading) {
-        setTimeout(() => this.isLoading.set(false), 300);
+        this.isLoading.set(false);
+      } else if (!feedingLoading && !settingsLoading) {
+        this.isLoading.set(false);
       }
     });
   }

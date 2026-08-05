@@ -1,4 +1,5 @@
 import { Injectable, effect, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { FeedingEntry } from '../models/feeding-entry.model';
 import { AuthService } from './auth.service';
@@ -49,6 +50,10 @@ const DEFAULT_FEEDING_TYPE = 'milk' as const;
 export class FeedingService {
   private entriesSubject = new BehaviorSubject<FeedingEntry[]>([]);
   public entries$: Observable<FeedingEntry[]> = this.entriesSubject.asObservable();
+
+  // Signal mirror of entries$ for zoneless-friendly reactive reads (computeds
+  // that depend on this update the view without a manual subscription).
+  public readonly entries = toSignal(this.entries$, { initialValue: [] as FeedingEntry[] });
 
   // Loading state signal
   public isLoading = signal<boolean>(false);

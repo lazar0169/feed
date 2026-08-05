@@ -22,9 +22,17 @@ export class Today implements OnInit {
   private destroyRef = inject(DestroyRef);
 
   // Modern Angular signals for reactive state
-  protected todayEntries = signal<FeedingEntry[]>([]);
   protected editingEntry = signal<FeedingEntry | undefined>(undefined);
-  protected readonly todayDate = new Date().toISOString().split('T')[0];
+  protected readonly todayDate = this.localToday();
+
+  // Derived reactively from the service's entries signal — no manual
+  // subscription, so it updates the view correctly under zoneless CD.
+  protected todayEntries = computed(() =>
+    this.feedingService
+      .entries()
+      .filter(e => e.date === this.todayDate)
+      .sort((a, b) => b.time.localeCompare(a.time))
+  );
   protected nextFeedCountdown = signal<string | null>(null);
   protected showFormModal = signal<boolean>(false);
   protected showTypeSelector = signal<boolean>(false);
@@ -111,16 +119,8 @@ export class Today implements OnInit {
   }
 
   ngOnInit(): void {
-    // Modern Angular: Subscribe with automatic cleanup
-    this.feedingService.entries$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
-        this.loadTodayEntries();
-      });
-
-    this.loadTodayEntries();
-
-    // Update countdown every minute
+    // Entries flow in reactively via the todayEntries computed; only the
+    // countdown needs a periodic refresh.
     interval(60000)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
@@ -128,8 +128,12 @@ export class Today implements OnInit {
       });
   }
 
-  private loadTodayEntries(): void {
-    this.todayEntries.set(this.feedingService.getTodayEntries());
+  private localToday(): string {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
   }
 
   protected openTypeSelector(): void {

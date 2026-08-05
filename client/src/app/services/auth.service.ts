@@ -19,6 +19,9 @@ export class AuthService {
   currentUser = signal<User | null>(null);
   currentProfile = signal<UserProfile | null>(null);
   isAuthenticated = signal<boolean>(false);
+  // True once the initial session restore has resolved (so the app can tell
+  // "still checking" apart from "definitely logged out").
+  authInitialized = signal<boolean>(false);
 
   constructor(private router: Router) {
     this.supabase = createClient(
@@ -36,6 +39,9 @@ export class AuthService {
       } else {
         this.currentProfile.set(null);
       }
+
+      // Supabase fires this with the restored (or null) session on load.
+      this.authInitialized.set(true);
     });
 
     // Check for existing session on init
@@ -43,11 +49,15 @@ export class AuthService {
   }
 
   private async checkSession() {
-    const { data: { session } } = await this.supabase.auth.getSession();
-    if (session?.user) {
-      this.currentUser.set(session.user);
-      this.isAuthenticated.set(true);
-      await this.loadUserProfile(session.user.id);
+    try {
+      const { data: { session } } = await this.supabase.auth.getSession();
+      if (session?.user) {
+        this.currentUser.set(session.user);
+        this.isAuthenticated.set(true);
+        await this.loadUserProfile(session.user.id);
+      }
+    } finally {
+      this.authInitialized.set(true);
     }
   }
 
