@@ -43,8 +43,11 @@ export class FeedingForm implements OnInit, OnChanges {
   private initForm(): void {
     this.isEditMode = !!this.entry;
     const now = new Date();
-    const defaultDate = this.defaultDate || now.toISOString().split('T')[0];
-    const defaultTime = this.formatTime(now);
+    const defaultDate = this.defaultDate || this.formatDate(now);
+    // Combined value for the single <input type="datetime-local"> (YYYY-MM-DDTHH:mm)
+    const defaultDateTime = this.entry
+      ? `${this.entry.date}T${this.entry.time}`
+      : `${defaultDate}T${this.formatTime(now)}`;
     const isSolid = this.feedingType === 'solid';
 
     // Determine measure type for editing
@@ -63,8 +66,7 @@ export class FeedingForm implements OnInit, OnChanges {
     if (this.feedingForm) {
       // Update existing form
       this.feedingForm.patchValue({
-        date: this.entry?.date || defaultDate,
-        time: this.entry?.time || defaultTime,
+        datetime: defaultDateTime,
         amount: this.entry?.amount || '',
         name: this.entry?.name || '',
         spoons: this.entry?.spoons || '',
@@ -75,8 +77,7 @@ export class FeedingForm implements OnInit, OnChanges {
     } else {
       // Create new form
       this.feedingForm = this.fb.group({
-        date: [this.entry?.date || defaultDate, Validators.required],
-        time: [this.entry?.time || defaultTime, Validators.required],
+        datetime: [defaultDateTime, Validators.required],
         amount: [this.entry?.amount || '', isSolid ? [] : [Validators.required, Validators.min(1)]],
         name: [this.entry?.name || '', isSolid ? Validators.required : []],
         spoons: [this.entry?.spoons || ''],
@@ -127,9 +128,35 @@ export class FeedingForm implements OnInit, OnChanges {
     return `${hours}:${minutes}`;
   }
 
+  private formatDate(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  /** Split a datetime-local value ('YYYY-MM-DDTHH:mm') into [date, time]. */
+  private splitDateTime(value: string): [string, string] {
+    const [datePart = '', timePart = ''] = (value || '').split('T');
+    return [datePart, timePart.slice(0, 5)];
+  }
+
   onSubmit(): void {
     if (this.feedingForm.valid) {
-      const formValue = { ...this.feedingForm.value };
+      const raw = { ...this.feedingForm.value };
+      // Split the combined datetime back into the date/time the rest of the
+      // app (and DB columns) expect.
+      const [date, time] = this.splitDateTime(raw.datetime);
+      // Loosely typed (like the reactive form value) so we can clear fields
+      // with null / delete depending on feeding type.
+      const formValue: any = {
+        date,
+        time,
+        amount: raw.amount,
+        name: raw.name,
+        spoons: raw.spoons,
+        comment: raw.comment
+      };
       // Only include name and spoons for solid foods
       if (this.feedingType !== 'solid') {
         delete formValue.name;
@@ -150,9 +177,9 @@ export class FeedingForm implements OnInit, OnChanges {
       }
       this.submitForm.emit(formValue);
       if (!this.isEditMode) {
+        // Keep the entered date, refresh the time to now for the next entry.
         this.feedingForm.reset({
-          date: this.feedingForm.value.date,
-          time: this.formatTime(new Date()),
+          datetime: `${date}T${this.formatTime(new Date())}`,
           amount: '',
           name: '',
           spoons: '',

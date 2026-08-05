@@ -4,8 +4,8 @@
   "description": "Track your baby's feeding schedule and amounts",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#191a27",
-  "theme_color": "#d6bdff",
+  "background_color": "#0f1115",
+  "theme_color": "#0f1115",
   "orientation": "portrait",
   "icons": [
     {

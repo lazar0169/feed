@@ -54,32 +54,21 @@
 
 /* Passive (default) look */
 .feeding-entry:not(.is-active) {
-  background: linear-gradient(
-    135deg,
-    rgba(34, 36, 52, 1),
-    rgba(31, 33, 48, 1)
-  );
-  border: 1px solid rgba(249, 215, 196, 0.08);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  background: var(--bg-medium);
+  border: 1px solid var(--border-subtle);
 }
 
 /* Hover only affects non-active */
 .feeding-entry:not(.is-active):hover {
-  border-color: rgba(249, 215, 196, 0.35);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
-  transform: translateY(-1px);
+  background: var(--bg-light);
+  border-color: var(--border-medium);
 }
 
 /* Active selected state */
 .feeding-entry.is-active {
-  background: radial-gradient(
-      circle at top right,
-      rgba(214, 189, 255, 0.22),
-      rgba(25, 26, 39, 0.98)
-    );
-  border: 1px solid rgba(249, 215, 196, 0.85);
-  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.55);
-  transform: translateY(-2px);
+  background: var(--bg-light);
+  border: 1px solid var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 /* Layout row: time | meta (date+amount) | actions */
@@ -102,21 +91,23 @@
   align-items: center;
   gap: 0.4rem;
   padding: 0.4rem 0.9rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--bg-dark);
+  border: 1px solid var(--border-subtle);
 }
 
 .time-chip i {
-  font-size: 0.9rem;
-  color: var(--accent-beige, #f6e0cf);
+  font-size: 0.85rem;
+  color: var(--accent);
   flex-shrink: 0;
 }
 
 .time-chip .time {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-dark);
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Meta: sits between time and actions, stretches */
@@ -148,21 +139,23 @@
   align-items: baseline;
   gap: 0.35rem;
   padding: 0.45rem 0.9rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--bg-dark);
+  border: 1px solid var(--border-subtle);
   flex-shrink: 0;
 
   i {
-    font-size: 0.9rem;
-    color: var(--accent-beige, #f6e0cf);
+    font-size: 0.85rem;
+    color: var(--accent);
     align-self: center;
   }
 
   .amount {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: #fff;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-dark);
     line-height: 1;
+    font-variant-numeric: tabular-nums;
   }
 
   .unit {
@@ -177,15 +170,16 @@
   align-items: center;
   gap: 0.4rem;
   padding: 0.4rem 0.9rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--bg-dark);
+  border: 1px solid var(--border-subtle);
   min-width: 0;
   flex: 1;
   max-width: 100%;
 
   i {
-    font-size: 0.9rem;
-    color: var(--accent-beige);
+    font-size: 0.85rem;
+    color: var(--accent);
     flex-shrink: 0;
   }
 
@@ -260,42 +254,42 @@
 .btn-icon {
   width: 2rem;
   height: 2rem;
-  border-radius: 999px;
-  border: none;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-medium);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease,
-    filter 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   flex-shrink: 0;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
 
   i {
-    font-size: 0.85rem;
-  }
-
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
+    font-size: 0.8rem;
   }
 
   &:active {
     transform: scale(0.94);
-    filter: brightness(0.9);
   }
 }
 
 .btn-edit {
-  background-color: var(--accent-lavender);
-  color: var(--bg-dark);
+  background: var(--bg-elevated);
+  color: var(--accent);
+
+  &:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent-ring);
+  }
 }
 
 .btn-delete {
-  background-color: var(--danger-color);
-  color: var(--bg-dark);
+  background: var(--bg-elevated);
+  color: var(--danger-color);
+
+  &:hover {
+    background: rgba(248, 113, 113, 0.12);
+    border-color: rgba(248, 113, 113, 0.4);
+  }
 }
 
 /* Comment row */

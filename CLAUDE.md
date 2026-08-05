@@ -67,7 +67,7 @@ Entries with no `type` default to `'milk'` (`DEFAULT_FEEDING_TYPE` in `feeding.s
 
 ## Styling & PWA
 
-- Mobile-first SCSS. Global theme is a dark palette of CSS custom properties in `src/styles.scss` (`--bg-*`, `--accent-*`, milky/lavender tones) — reuse these vars rather than hardcoding colors. Fonts: **Comfortaa** (Google Fonts) and **Font Awesome 6.4.2**, both loaded via CDN `<link>`s in `src/index.html` (icons are `<i class="fas fa-…">`).
+- Mobile-first SCSS, "Refined Dark" design system. Design tokens are CSS custom properties in `src/styles.scss` — surfaces (`--bg-dark/medium/light/card/elevated`), text (`--text-dark/light/faint`), a single violet accent (`--accent`, `--accent-hover`, `--accent-soft`, `--accent-ring`), hairline borders (`--border-subtle/medium/strong`), radii (`--radius-sm/`/`--radius`/`--radius-lg`/`--radius-pill`), and restrained neutral shadows (`--shadow`/`-lg`/`-xl`). Always reuse these vars rather than hardcoding colors, and avoid decorative gradients/colored glows — the system is flat surfaces + hairlines. Legacy accent names (`--accent-lavender`, `--primary-color`, etc.) are kept but re-pointed to the violet system. Fonts: **Inter** (Google Fonts) and **Font Awesome 6.4.2**, loaded via CDN `<link>`s in `src/index.html` (icons are `<i class="fas fa-…">`).
 - PWA: service worker registered in `app.config.ts` (disabled in dev), configured by `ngsw-config.json`; iOS/Android icons and meta tags live in `index.html` and `public/`. See `client/PWA-ICONS-GUIDE.md` for icon regeneration.
 
 ## Conventions
