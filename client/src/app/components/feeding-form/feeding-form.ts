@@ -25,7 +25,7 @@ export class FeedingForm implements OnInit, OnChanges {
 
   feedingForm!: FormGroup;
   isEditMode = false;
-  solidMeasureType: 'grams' | 'spoons' = 'grams';
+  solidMeasureType: 'grams' | 'spoons' | 'none' = 'grams';
 
   constructor(private fb: FormBuilder) {}
 
@@ -49,7 +49,13 @@ export class FeedingForm implements OnInit, OnChanges {
 
     // Determine measure type for editing
     if (this.entry && isSolid) {
-      this.solidMeasureType = this.entry.spoons ? 'spoons' : 'grams';
+      if (this.entry.spoons) {
+        this.solidMeasureType = 'spoons';
+      } else if (this.entry.amount > 0) {
+        this.solidMeasureType = 'grams';
+      } else {
+        this.solidMeasureType = 'none';
+      }
     } else {
       this.solidMeasureType = 'grams';
     }
@@ -88,9 +94,10 @@ export class FeedingForm implements OnInit, OnChanges {
       this.feedingForm.get('spoons')?.clearValidators();
       if (this.solidMeasureType === 'grams') {
         this.feedingForm.get('amount')?.setValidators([Validators.required, Validators.min(1)]);
-      } else {
+      } else if (this.solidMeasureType === 'spoons') {
         this.feedingForm.get('spoons')?.setValidators([Validators.required, Validators.min(1)]);
       }
+      // 'none' → amount is unknown, only the food name is required
     } else {
       this.feedingForm.get('name')?.clearValidators();
       this.feedingForm.get('spoons')?.clearValidators();
@@ -101,13 +108,15 @@ export class FeedingForm implements OnInit, OnChanges {
     this.feedingForm.get('spoons')?.updateValueAndValidity();
   }
 
-  onMeasureTypeChange(type: 'grams' | 'spoons'): void {
+  onMeasureTypeChange(type: 'grams' | 'spoons' | 'none'): void {
     this.solidMeasureType = type;
-    // Clear the other field
+    // Clear the fields that don't apply to the selected measure type
     if (type === 'grams') {
       this.feedingForm.patchValue({ spoons: '' });
-    } else {
+    } else if (type === 'spoons') {
       this.feedingForm.patchValue({ amount: '' });
+    } else {
+      this.feedingForm.patchValue({ amount: '', spoons: '' });
     }
     this.updateSolidValidators(true);
   }
@@ -126,11 +135,17 @@ export class FeedingForm implements OnInit, OnChanges {
         delete formValue.name;
         delete formValue.spoons;
       } else {
-        // Clean up based on measure type
+        // Normalize the fields that don't apply to the chosen measure type.
+        // Set them explicitly (rather than delete) so switching measure type
+        // on an existing entry clears the previous value instead of keeping it.
         if (this.solidMeasureType === 'grams') {
-          delete formValue.spoons;
+          formValue.spoons = null;
+        } else if (this.solidMeasureType === 'spoons') {
+          formValue.amount = 0; // Amount is measured in spoons, not grams
         } else {
-          formValue.amount = 0; // Set amount to 0 when using spoons
+          // 'none' → feed happened but amount is unknown
+          formValue.amount = 0;
+          formValue.spoons = null;
         }
       }
       this.submitForm.emit(formValue);

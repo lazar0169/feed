@@ -64,6 +64,15 @@
           <i class="fas fa-spoon"></i>
           <span>Spoons</span>
         </button>
+        <button
+          type="button"
+          class="toggle-btn"
+          [class.active]="solidMeasureType === 'none'"
+          (click)="onMeasureTypeChange('none')"
+        >
+          <i class="fas fa-circle-question"></i>
+          <span>Not sure</span>
+        </button>
       </div>
     </div>
 
@@ -86,7 +95,7 @@
           (keypress)="onlyNumbers($event)"
         />
       </div>
-    } @else {
+    } @else if (solidMeasureType === 'spoons') {
       <div class="form-group">
         <label for="spoons">
           <i class="fas fa-spoon"></i>
@@ -104,6 +113,13 @@
           inputmode="numeric"
           (keypress)="onlyNumbers($event)"
         />
+      </div>
+    } @else {
+      <div class="form-group">
+        <p class="measure-hint">
+          <i class="fas fa-circle-info"></i>
+          <span>Just logging that this feed happened - no amount recorded.</span>
+        </p>
       </div>
     }
   } @else {
