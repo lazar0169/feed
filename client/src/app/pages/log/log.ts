@@ -11,8 +11,7 @@ interface DateGroup {
   entries: FeedingEntry[];
   totalFeedings: number;
   totalMilk: number;
-  totalSolidsGrams: number;
-  totalSolidsSpoons: number;
+  solidFeeds: number;
 }
 
 @Component({
@@ -143,8 +142,7 @@ export class Log implements OnInit {
           entries: sorted,
           totalFeedings: sorted.length,
           totalMilk: milkEntries.reduce((sum, e) => sum + e.amount, 0),
-          totalSolidsGrams: solidEntries.reduce((sum, e) => sum + (e.amount || 0), 0),
-          totalSolidsSpoons: solidEntries.reduce((sum, e) => sum + (e.spoons || 0), 0),
+          solidFeeds: solidEntries.length,
         };
       });
   }

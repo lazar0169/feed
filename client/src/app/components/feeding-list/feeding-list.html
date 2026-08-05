@@ -37,26 +37,25 @@
             </div>
           }
 
-          <div class="entry-amount">
-            @if (entry.type === 'solid') {
-              @if (entry.spoons) {
-                <i class="fas fa-spoon" aria-hidden="true"></i>
-                <span class="amount">{{ entry.spoons }}</span>
-                <span class="unit">sp</span>
-              } @else if (entry.amount) {
-                <i class="fas fa-scale-balanced" aria-hidden="true"></i>
-                <span class="amount">{{ entry.amount }}</span>
-                <span class="unit">g</span>
+          @if (entry.type !== 'solid' || entry.spoons || entry.amount) {
+            <div class="entry-amount">
+              @if (entry.type === 'solid') {
+                @if (entry.spoons) {
+                  <i class="fas fa-spoon" aria-hidden="true"></i>
+                  <span class="amount">{{ entry.spoons }}</span>
+                  <span class="unit">sp</span>
+                } @else {
+                  <i class="fas fa-scale-balanced" aria-hidden="true"></i>
+                  <span class="amount">{{ entry.amount }}</span>
+                  <span class="unit">g</span>
+                }
               } @else {
-                <i class="fas fa-check" aria-hidden="true"></i>
-                <span class="unit">logged</span>
+                <i class="fas fa-bottle-droplet" aria-hidden="true"></i>
+                <span class="amount">{{ entry.amount }}</span>
+                <span class="unit">ml</span>
               }
-            } @else {
-              <i class="fas fa-bottle-droplet" aria-hidden="true"></i>
-              <span class="amount">{{ entry.amount }}</span>
-              <span class="unit">ml</span>
-            }
-          </div>
+            </div>
+          }
         </div>
 
         <!-- Actions (collapse/expand) -->

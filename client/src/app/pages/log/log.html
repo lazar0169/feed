@@ -51,16 +51,10 @@
                 <i class="fas fa-bottle-droplet"></i>
                 {{ group.totalMilk }} ml
               </span>
-              @if (group.totalSolidsGrams > 0 || group.totalSolidsSpoons > 0) {
-                <span class="stat-badge" title="Total solids">
+              @if (group.solidFeeds > 0) {
+                <span class="stat-badge" title="Solid feeds">
                   <i class="fas fa-bowl-food"></i>
-                  @if (group.totalSolidsGrams > 0 && group.totalSolidsSpoons > 0) {
-                    {{ group.totalSolidsGrams }}g / {{ group.totalSolidsSpoons }}sp
-                  } @else if (group.totalSolidsGrams > 0) {
-                    {{ group.totalSolidsGrams }} g
-                  } @else {
-                    {{ group.totalSolidsSpoons }} sp
-                  }
+                  {{ group.solidFeeds }} {{ group.solidFeeds === 1 ? 'solid' : 'solids' }}
                 </span>
               }
             </div>

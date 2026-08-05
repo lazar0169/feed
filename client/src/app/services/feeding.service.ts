@@ -9,6 +9,37 @@ interface FeedingEntryDb extends FeedingEntry {
   updated_at?: string;
 }
 
+/** One day's aggregated feeding totals (for the intake trend chart). */
+export interface DailyTotal {
+  date: string; // YYYY-MM-DD
+  label: string; // short axis label, e.g. "5/8"
+  weekday: string; // e.g. "Mon"
+  milkMl: number;
+  solidsGrams: number;
+  solidsSpoons: number;
+  solidFeeds: number;
+  feeds: number;
+}
+
+/** Spacing between consecutive feeds over some range. */
+export interface IntervalStats {
+  averageMs: number;
+  longestGapMs: number;
+  longestGapStart: number; // timestamp of the feed before the longest gap
+}
+
+/** One metric compared against the previous week. */
+export interface WeekMetric {
+  current: number;
+  previous: number;
+  delta: number;
+}
+
+export interface WeekComparison {
+  feedsPerDay: WeekMetric;
+  milkPerDay: WeekMetric;
+}
+
 // Default type for entries that don't have one (backwards compatibility)
 const DEFAULT_FEEDING_TYPE = 'milk' as const;
 
@@ -377,6 +408,139 @@ export class FeedingService {
   /** Re-fetch the recent window (e.g. after an edit crosses the boundary). */
   async reload(): Promise<void> {
     await this.loadEntries();
+  }
+
+  // ---- Insights / analytics (all computed from the in-memory window) ----
+  // Each is a single linear pass; kept separate for testability. Cheap enough
+  // to re-run on every entries$ emission for a ≤90-day window.
+
+  /**
+   * Per-day aggregated totals for the last `days` days (oldest → newest),
+   * including days with no feeds. Drives the intake trend chart.
+   */
+  getDailyTotals(days: number): DailyTotal[] {
+    const byDate = new Map<string, { milkMl: number; solidsGrams: number; solidsSpoons: number; solidFeeds: number; feeds: number }>();
+    for (const e of this.entriesSubject.value) {
+      let acc = byDate.get(e.date);
+      if (!acc) {
+        acc = { milkMl: 0, solidsGrams: 0, solidsSpoons: 0, solidFeeds: 0, feeds: 0 };
+        byDate.set(e.date, acc);
+      }
+      // null/absent type is normalized to milk on load, so !== 'solid' is safe.
+      if (e.type === 'solid') {
+        acc.solidsGrams += e.amount || 0;
+        acc.solidsSpoons += e.spoons || 0;
+        acc.solidFeeds++;
+      } else {
+        acc.milkMl += e.amount || 0;
+      }
+      acc.feeds++;
+    }
+
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const result: DailyTotal[] = [];
+    const cursor = new Date();
+    cursor.setHours(0, 0, 0, 0);
+    cursor.setDate(cursor.getDate() - (days - 1));
+    for (let i = 0; i < days; i++) {
+      const date = this.toLocalDateStr(cursor);
+      const acc = byDate.get(date);
+      const solidsGrams = acc?.solidsGrams || 0;
+      const solidsSpoons = acc?.solidsSpoons || 0;
+      result.push({
+        date,
+        label: `${cursor.getDate()}/${cursor.getMonth() + 1}`,
+        weekday: weekdays[cursor.getDay()],
+        milkMl: acc?.milkMl || 0,
+        solidsGrams,
+        solidsSpoons,
+        solidFeeds: acc?.solidFeeds || 0,
+        feeds: acc?.feeds || 0
+      });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    return result;
+  }
+
+  /** Feeds bucketed by hour of day (0..23) across the window. */
+  getHourlyCounts(): number[] {
+    const counts = new Array(24).fill(0);
+    for (const e of this.entriesSubject.value) {
+      const h = parseInt((e.time || '').slice(0, 2), 10);
+      if (!isNaN(h) && h >= 0 && h < 24) counts[h]++;
+    }
+    return counts;
+  }
+
+  /**
+   * Spacing between consecutive feeds over the last `days` days (all feed types
+   * — a solid still resets the clock). Null when fewer than two feeds in range.
+   */
+  getIntervalStats(days: number = 7): IntervalStats | null {
+    const since = Date.now() - days * 24 * 60 * 60 * 1000;
+    const ts = this.entriesSubject.value
+      .map(e => e.timestamp)
+      .filter(t => typeof t === 'number' && !isNaN(t) && t >= since)
+      .sort((a, b) => a - b);
+    if (ts.length < 2) return null;
+
+    let total = 0;
+    let longestGapMs = 0;
+    let longestGapStart = ts[0];
+    for (let i = 1; i < ts.length; i++) {
+      const gap = ts[i] - ts[i - 1];
+      total += gap;
+      if (gap > longestGapMs) {
+        longestGapMs = gap;
+        longestGapStart = ts[i - 1];
+      }
+    }
+    return { averageMs: total / (ts.length - 1), longestGapMs, longestGapStart };
+  }
+
+  /**
+   * Compares the last 7 days against the 7 days before that: average feeds/day
+   * and average milk (ml)/day, with the signed delta between the two weeks.
+   */
+  getWeekComparison(): WeekComparison {
+    const day = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const thisWeekStart = now - 7 * day;
+    const lastWeekStart = now - 14 * day;
+
+    let curFeeds = 0;
+    let prevFeeds = 0;
+    let curMilk = 0;
+    let prevMilk = 0;
+    for (const e of this.entriesSubject.value) {
+      const isMilk = e.type !== 'solid';
+      if (e.timestamp >= thisWeekStart) {
+        curFeeds++;
+        if (isMilk) curMilk += e.amount || 0;
+      } else if (e.timestamp >= lastWeekStart) {
+        prevFeeds++;
+        if (isMilk) prevMilk += e.amount || 0;
+      }
+    }
+
+    const round1 = (n: number) => Math.round(n * 10) / 10;
+    const feedsCur = round1(curFeeds / 7);
+    const feedsPrev = round1(prevFeeds / 7);
+    const milkCur = Math.round(curMilk / 7);
+    const milkPrev = Math.round(prevMilk / 7);
+
+    return {
+      feedsPerDay: { current: feedsCur, previous: feedsPrev, delta: round1(feedsCur - feedsPrev) },
+      milkPerDay: { current: milkCur, previous: milkPrev, delta: milkCur - milkPrev }
+    };
+  }
+
+  /** Local YYYY-MM-DD (matches how entry dates are stored by the form). */
+  private toLocalDateStr(d: Date): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
   }
 
   /**
