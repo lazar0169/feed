@@ -74,4 +74,18 @@
       </div>
     }
   </div>
+
+  @if (hasMoreOlder()) {
+    <div class="load-more">
+      <button class="btn-load-more" (click)="loadOlder()" [disabled]="loadingOlder()">
+        <i
+          class="fas"
+          [class.fa-chevron-down]="!loadingOlder()"
+          [class.fa-spinner]="loadingOlder()"
+          [class.fa-spin]="loadingOlder()"
+        ></i>
+        <span>{{ loadingOlder() ? 'Loading…' : 'Load older entries' }}</span>
+      </button>
+    </div>
+  }
 </div>

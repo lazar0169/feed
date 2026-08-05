@@ -1,4 +1,5 @@
-import { Component, OnInit, signal, effect } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FeedingService } from '../../services/feeding.service';
 
@@ -24,22 +25,21 @@ interface PeriodStats {
   styleUrl: './statistics.scss',
 })
 export class Statistics implements OnInit {
+  private feedingService = inject(FeedingService);
+  private destroyRef = inject(DestroyRef);
+
   // Modern Angular signals for reactive state
   protected weekStats = signal<PeriodStats | undefined>(undefined);
   protected monthStats = signal<PeriodStats | undefined>(undefined);
-  protected allTimeStats = signal<PeriodStats | undefined>(undefined);
-
-  constructor(private feedingService: FeedingService) {
-    // Effect runs whenever entries$ emits
-    effect(() => {
-      this.feedingService.entries$.subscribe(() => {
-        this.loadStatistics();
-      });
-    });
-  }
+  // Stats over the whole in-memory recent window (see FeedingService).
+  protected windowStats = signal<PeriodStats | undefined>(undefined);
+  protected readonly windowDays = this.feedingService.getWindowDays();
 
   ngOnInit(): void {
-    this.loadStatistics();
+    // Recompute whenever entries$ emits, with automatic teardown on destroy.
+    this.feedingService.entries$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.loadStatistics());
   }
 
   private loadStatistics(): void {
@@ -48,11 +48,13 @@ export class Statistics implements OnInit {
     const weekAgoStr = weekAgo.toISOString().split('T')[0];
 
     const monthAgo = new Date();
-    monthAgo.setMonth(monthAgo.getMonth() - 1);
+    monthAgo.setDate(monthAgo.getDate() - 30);
     const monthAgoStr = monthAgo.toISOString().split('T')[0];
 
+    // week/month are exact — both fall inside the recent window.
     this.weekStats.set(this.feedingService.getStatistics(weekAgoStr));
     this.monthStats.set(this.feedingService.getStatistics(monthAgoStr));
-    this.allTimeStats.set(this.feedingService.getStatistics());
+    // No date filter => the entire recent window.
+    this.windowStats.set(this.feedingService.getStatistics());
   }
 }

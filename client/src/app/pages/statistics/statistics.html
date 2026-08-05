@@ -136,11 +136,11 @@
       </div>
     }
 
-    @if (allTimeStats()) {
+    @if (windowStats()) {
       <div class="stat-card">
         <div class="card-header">
-          <i class="fas fa-infinity"></i>
-          <h3>All Time</h3>
+          <i class="fas fa-clock-rotate-left"></i>
+          <h3>Last {{ windowDays }} Days</h3>
         </div>
         <div class="card-body">
           <div class="stat-row">
@@ -148,7 +148,7 @@
               <i class="fas fa-hashtag"></i>
               <span>Total Feedings</span>
             </div>
-            <span class="stat-value">{{ allTimeStats()!.totalFeedings }}</span>
+            <span class="stat-value">{{ windowStats()!.totalFeedings }}</span>
           </div>
           <div class="stat-section-header">
             <i class="fas fa-bottle-droplet"></i>
@@ -158,19 +158,19 @@
             <div class="stat-label">
               <span>Feedings</span>
             </div>
-            <span class="stat-value">{{ allTimeStats()!.milkFeedings }}</span>
+            <span class="stat-value">{{ windowStats()!.milkFeedings }}</span>
           </div>
           <div class="stat-row">
             <div class="stat-label">
               <span>Total</span>
             </div>
-            <span class="stat-value">{{ allTimeStats()!.totalMilk }} ml</span>
+            <span class="stat-value">{{ windowStats()!.totalMilk }} ml</span>
           </div>
           <div class="stat-row">
             <div class="stat-label">
               <span>Average</span>
             </div>
-            <span class="stat-value">{{ allTimeStats()!.averageMilk }} ml</span>
+            <span class="stat-value">{{ windowStats()!.averageMilk }} ml</span>
           </div>
           <div class="stat-section-header">
             <i class="fas fa-bowl-food"></i>
@@ -180,22 +180,22 @@
             <div class="stat-label">
               <span>Feedings</span>
             </div>
-            <span class="stat-value">{{ allTimeStats()!.solidFeedings }}</span>
+            <span class="stat-value">{{ windowStats()!.solidFeedings }}</span>
           </div>
-          @if (allTimeStats()!.totalSolidsGrams > 0) {
+          @if (windowStats()!.totalSolidsGrams > 0) {
             <div class="stat-row">
               <div class="stat-label">
                 <span>Total (grams)</span>
               </div>
-              <span class="stat-value">{{ allTimeStats()!.totalSolidsGrams }} g</span>
+              <span class="stat-value">{{ windowStats()!.totalSolidsGrams }} g</span>
             </div>
           }
-          @if (allTimeStats()!.totalSolidsSpoons > 0) {
+          @if (windowStats()!.totalSolidsSpoons > 0) {
             <div class="stat-row">
               <div class="stat-label">
                 <span>Total (spoons)</span>
               </div>
-              <span class="stat-value">{{ allTimeStats()!.totalSolidsSpoons }} sp</span>
+              <span class="stat-value">{{ windowStats()!.totalSolidsSpoons }} sp</span>
             </div>
           }
         </div>
@@ -203,7 +203,7 @@
     }
   </div>
 
-  @if (!allTimeStats() || allTimeStats()!.totalFeedings === 0) {
+  @if (!windowStats() || windowStats()!.totalFeedings === 0) {
     <div class="empty-state">
       <i class="fas fa-chart-pie"></i>
       <p>No feeding data available yet.</p>

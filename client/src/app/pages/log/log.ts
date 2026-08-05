@@ -1,4 +1,5 @@
-import { Component, OnInit, signal, effect } from '@angular/core';
+import { Component, OnInit, DestroyRef, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FeedingService } from '../../services/feeding.service';
 import { FeedingEntry } from '../../models/feeding-entry.model';
@@ -21,49 +22,57 @@ interface DateGroup {
   styleUrl: './log.scss',
 })
 export class Log implements OnInit {
-  // Modern Angular signals for reactive state
-  protected dateGroups = signal<DateGroup[]>([]);
-  protected editingEntry = signal<FeedingEntry | undefined>(undefined);
+  private feedingService = inject(FeedingService);
+  private destroyRef = inject(DestroyRef);
 
-  constructor(private feedingService: FeedingService) {
-    // Effect runs whenever entries$ emits
-    effect(() => {
-      this.feedingService.entries$.subscribe(() => {
-        this.loadEntries();
-      });
-    });
-  }
+  private readonly PAGE_SIZE = 100;
+
+  // The recent window comes live from entries$; older history is paged in on
+  // demand. The two are disjoint by timestamp (window is >= windowStart,
+  // older is < windowStart), so combining them never duplicates a row.
+  private recentEntries = signal<FeedingEntry[]>([]);
+  private olderEntries = signal<FeedingEntry[]>([]);
+  private olderOffset = 0;
+
+  protected editingEntry = signal<FeedingEntry | undefined>(undefined);
+  protected hasMoreOlder = signal<boolean>(false);
+  protected loadingOlder = signal<boolean>(false);
+
+  protected dateGroups = computed<DateGroup[]>(() =>
+    this.groupByDate([...this.recentEntries(), ...this.olderEntries()])
+  );
 
   ngOnInit(): void {
-    this.loadEntries();
+    this.feedingService.entries$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(list => this.recentEntries.set(list));
+
+    // Pull the first page of pre-window history so the log shows more than the
+    // recent window; further pages load on demand via the "Load older" button.
+    this.loadOlder();
   }
 
-  private loadEntries(): void {
-    const uniqueDates = this.feedingService.getUniqueDates();
-    this.dateGroups.set(uniqueDates.map(date => {
-      const entries = this.feedingService.getEntriesByDate(date);
-      const milkEntries = entries.filter(e => e.type !== 'solid');
-      const solidEntries = entries.filter(e => e.type === 'solid');
-      const totalMilk = milkEntries.reduce((sum, entry) => sum + entry.amount, 0);
-      const totalSolidsGrams = solidEntries.reduce((sum, entry) => sum + (entry.amount || 0), 0);
-      const totalSolidsSpoons = solidEntries.reduce((sum, entry) => sum + (entry.spoons || 0), 0);
-      return {
-        date,
-        entries,
-        totalFeedings: entries.length,
-        totalMilk,
-        totalSolidsGrams,
-        totalSolidsSpoons
-      };
-    }));
+  protected async loadOlder(): Promise<void> {
+    if (this.loadingOlder()) return;
+    this.loadingOlder.set(true);
+    const page = await this.feedingService.loadOlderEntries(this.olderOffset, this.PAGE_SIZE);
+    if (page.length > 0) {
+      this.olderEntries.set([...this.olderEntries(), ...page]);
+      this.olderOffset += page.length;
+    }
+    this.hasMoreOlder.set(page.length === this.PAGE_SIZE);
+    this.loadingOlder.set(false);
   }
 
-  protected onSubmit(formData: { date: string; time: string; amount: number; name?: string; spoons?: number; comment?: string }): void {
+  protected async onSubmit(formData: { date: string; time: string; amount: number; name?: string; spoons?: number; comment?: string }): Promise<void> {
     const editing = this.editingEntry();
     if (editing) {
-      this.feedingService.updateEntry(editing.id, formData);
+      await this.feedingService.updateEntry(editing.id, formData);
+      this.reconcileOlderAfterEdit(editing.id, formData);
     } else {
-      this.feedingService.createEntry({ ...formData, type: 'milk' });
+      // New entries are timestamped "now", so they land in the recent window
+      // and surface through the entries$ subscription automatically.
+      await this.feedingService.createEntry({ ...formData, type: 'milk' });
     }
     this.editingEntry.set(undefined);
   }
@@ -76,8 +85,68 @@ export class Log implements OnInit {
     this.editingEntry.set(undefined);
   }
 
-  protected onDelete(id: string): void {
-    this.feedingService.deleteEntry(id);
+  protected async onDelete(id: string): Promise<void> {
+    await this.feedingService.deleteEntry(id);
+    // Recent-window rows drop via entries$; older rows we remove locally.
+    const older = this.olderEntries();
+    if (older.some(e => e.id === id)) {
+      this.olderEntries.set(older.filter(e => e.id !== id));
+    }
+  }
+
+  /**
+   * Keep the older-history store consistent after an edit. Recent-window edits
+   * flow through entries$, so this only handles rows in the older store —
+   * including the rare case where an edit moves a row into the recent window.
+   */
+  private reconcileOlderAfterEdit(
+    id: string,
+    formData: { date: string; time: string; amount: number; name?: string; spoons?: number; comment?: string }
+  ): void {
+    const older = this.olderEntries();
+    const idx = older.findIndex(e => e.id === id);
+    if (idx === -1) return; // was a recent entry
+
+    const merged: FeedingEntry = { ...older[idx], ...formData };
+    merged.timestamp = new Date(`${merged.date}T${merged.time}`).getTime();
+
+    if (merged.timestamp >= this.feedingService.getWindowStart()) {
+      // Crossed into the recent window: drop it here and refresh the window.
+      this.olderEntries.set(older.filter(e => e.id !== id));
+      this.feedingService.reload();
+    } else {
+      const next = [...older];
+      next[idx] = merged;
+      this.olderEntries.set(next);
+    }
+  }
+
+  private groupByDate(entries: FeedingEntry[]): DateGroup[] {
+    const byDate = new Map<string, FeedingEntry[]>();
+    for (const e of entries) {
+      const arr = byDate.get(e.date);
+      if (arr) {
+        arr.push(e);
+      } else {
+        byDate.set(e.date, [e]);
+      }
+    }
+
+    return Array.from(byDate.entries())
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([date, list]) => {
+        const sorted = [...list].sort((a, b) => b.time.localeCompare(a.time));
+        const milkEntries = sorted.filter(e => e.type !== 'solid');
+        const solidEntries = sorted.filter(e => e.type === 'solid');
+        return {
+          date,
+          entries: sorted,
+          totalFeedings: sorted.length,
+          totalMilk: milkEntries.reduce((sum, e) => sum + e.amount, 0),
+          totalSolidsGrams: solidEntries.reduce((sum, e) => sum + (e.amount || 0), 0),
+          totalSolidsSpoons: solidEntries.reduce((sum, e) => sum + (e.spoons || 0), 0),
+        };
+      });
   }
 
   protected formatDate(dateString: string): string {

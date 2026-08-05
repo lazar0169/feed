@@ -22,6 +22,19 @@ export class FeedingService {
   // Loading state signal
   public isLoading = signal<boolean>(false);
 
+  // Only the most recent window of entries is kept in memory. This keeps the
+  // startup fetch (and every consumer that scans the whole list) bounded as
+  // history grows. Older entries are fetched on demand by the Log page via
+  // fetchEntriesRange(). 90 days keeps the 7-day and 30-day stats exact.
+  private readonly RECENT_WINDOW_DAYS = 90;
+
+  // Page size for on-demand paging of older (pre-window) history in the Log.
+  private readonly OLDER_PAGE_SIZE = 100;
+
+  // Explicit column list instead of select('*') to avoid over-fetching.
+  private readonly ENTRY_COLUMNS =
+    'id, type, date, time, amount, name, spoons, comment, timestamp';
+
   constructor(private authService: AuthService) {
     // Modern Angular: Use effect to watch signal changes
     effect(() => {
@@ -48,31 +61,65 @@ export class FeedingService {
       const supabase = this.authService.getSupabaseClient();
       const { data, error } = await supabase
         .from('feeding_entries')
-        .select('*')
+        .select(this.ENTRY_COLUMNS)
         .eq('user_id', user.id)
+        .gte('timestamp', this.getWindowStart())
         .order('timestamp', { ascending: false });
 
       if (error) throw error;
 
-      const entries: FeedingEntry[] = (data || []).map((entry: FeedingEntryDb) => ({
-        id: entry.id,
-        type: entry.type || DEFAULT_FEEDING_TYPE,
-        date: entry.date,
-        time: entry.time,
-        amount: entry.amount,
-        name: entry.name,
-        spoons: entry.spoons,
-        comment: entry.comment,
-        timestamp: entry.timestamp
-      }));
-
-      this.entriesSubject.next(entries);
+      this.entriesSubject.next((data || []).map(entry => this.mapRow(entry as FeedingEntryDb)));
     } catch (error) {
       console.error('Error loading entries:', error);
       this.entriesSubject.next([]);
     } finally {
       this.isLoading.set(false);
     }
+  }
+
+  /**
+   * Fetch a page of OLDER entries — those before the in-memory recent window.
+   * These are deliberately NOT added to entries$; the Log page keeps its own
+   * paginated store. The strict timestamp boundary (window is >= windowStart,
+   * older is < windowStart) guarantees no overlap with entries$. Returns []
+   * on error.
+   */
+  async loadOlderEntries(offset: number, pageSize: number = this.OLDER_PAGE_SIZE): Promise<FeedingEntry[]> {
+    const user = this.authService.currentUser();
+    if (!user) return [];
+
+    try {
+      const supabase = this.authService.getSupabaseClient();
+      const { data, error } = await supabase
+        .from('feeding_entries')
+        .select(this.ENTRY_COLUMNS)
+        .eq('user_id', user.id)
+        .lt('timestamp', this.getWindowStart())
+        .order('timestamp', { ascending: false })
+        .range(offset, offset + pageSize - 1);
+
+      if (error) throw error;
+
+      return (data || []).map(entry => this.mapRow(entry as FeedingEntryDb));
+    } catch (error) {
+      console.error('Error loading older entries:', error);
+      return [];
+    }
+  }
+
+  /** Map a raw DB row to a FeedingEntry (null type defaults to milk). */
+  private mapRow(entry: FeedingEntryDb): FeedingEntry {
+    return {
+      id: entry.id,
+      type: entry.type || DEFAULT_FEEDING_TYPE,
+      date: entry.date,
+      time: entry.time,
+      amount: entry.amount,
+      name: entry.name,
+      spoons: entry.spoons,
+      comment: entry.comment,
+      timestamp: entry.timestamp
+    };
   }
 
   /**
@@ -141,17 +188,7 @@ export class FeedingService {
 
       if (error) throw error;
 
-      const newEntry: FeedingEntry = {
-        id: data.id,
-        type: data.type || DEFAULT_FEEDING_TYPE,
-        date: data.date,
-        time: data.time,
-        amount: data.amount,
-        name: data.name,
-        spoons: data.spoons,
-        comment: data.comment,
-        timestamp: data.timestamp
-      };
+      const newEntry = this.mapRow(data as FeedingEntryDb);
 
       // Update local state
       const entries = [...this.entriesSubject.value, newEntry];
@@ -176,11 +213,13 @@ export class FeedingService {
       const entries = this.entriesSubject.value;
       const index = entries.findIndex(entry => entry.id === id);
 
-      if (index === -1) {
-        return false;
-      }
-
-      const updatedEntry = { ...entries[index], ...updates };
+      // The entry may live in the recent window (entries$) or only in the Log's
+      // older-history store. When it isn't in memory we still perform the DB
+      // write — the feeding form always submits the full editable field set.
+      const base: FeedingEntry = index !== -1
+        ? entries[index]
+        : { id, type: DEFAULT_FEEDING_TYPE, date: '', time: '', amount: 0, timestamp: 0 };
+      const updatedEntry: FeedingEntry = { ...base, ...updates, id };
 
       // Recalculate timestamp if date or time changed
       if (updates.date || updates.time) {
@@ -206,9 +245,11 @@ export class FeedingService {
 
       if (error) throw error;
 
-      // Update local state
-      entries[index] = updatedEntry;
-      this.entriesSubject.next([...entries]);
+      // Reflect in the recent window only when the entry belongs to it.
+      if (index !== -1) {
+        entries[index] = updatedEntry;
+        this.entriesSubject.next([...entries]);
+      }
 
       return true;
     } catch (error) {
@@ -235,15 +276,14 @@ export class FeedingService {
 
       if (error) throw error;
 
-      // Update local state
+      // Remove from the recent window if it lives there; older entries are
+      // removed from the Log's own store by the caller.
       const entries = this.entriesSubject.value;
       const filteredEntries = entries.filter(entry => entry.id !== id);
-
-      if (filteredEntries.length === entries.length) {
-        return false; // Entry not found
+      if (filteredEntries.length !== entries.length) {
+        this.entriesSubject.next(filteredEntries);
       }
 
-      this.entriesSubject.next(filteredEntries);
       return true;
     } catch (error) {
       console.error('Error deleting entry:', error);
@@ -317,6 +357,26 @@ export class FeedingService {
       totalSolidsGrams,
       totalSolidsSpoons
     };
+  }
+
+  /** Epoch-ms lower bound of the in-memory recent window. */
+  getWindowStart(): number {
+    return Date.now() - this.RECENT_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+  }
+
+  /** Recent-window lower bound as YYYY-MM-DD (for date-string filters). */
+  getWindowStartDate(): string {
+    return new Date(this.getWindowStart()).toISOString().split('T')[0];
+  }
+
+  /** Number of days the in-memory window (and window-scoped stats) cover. */
+  getWindowDays(): number {
+    return this.RECENT_WINDOW_DAYS;
+  }
+
+  /** Re-fetch the recent window (e.g. after an edit crosses the boundary). */
+  async reload(): Promise<void> {
+    await this.loadEntries();
   }
 
   /**

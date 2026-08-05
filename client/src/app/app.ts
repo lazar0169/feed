@@ -55,14 +55,15 @@ export class App {
     effect(() => {
       const user = this.authService.currentUser();
       const isAuthenticated = this.authService.isAuthenticated();
-      const feedingLoading = this.feedingService.isLoading();
       const settingsLoading = this.settingsService.isLoading();
 
-      // If not authenticated, hide loader immediately (go to login)
+      // The splash hides as soon as auth + settings resolve. Feeding history
+      // loads in the background (bounded to a recent window) and the Today page
+      // fills in when entries$ emits, so a growing history no longer delays
+      // first paint.
       if (!isAuthenticated) {
         setTimeout(() => this.isLoading.set(false), 300);
-      } else if (user && !feedingLoading && !settingsLoading) {
-        // If authenticated and all data is loaded, hide loader
+      } else if (user && !settingsLoading) {
         setTimeout(() => this.isLoading.set(false), 300);
       }
     });
