@@ -1,7 +1,6 @@
 import { Routes } from '@angular/router';
 import { Today } from './pages/today/today';
 import { Log } from './pages/log/log';
-import { Statistics } from './pages/statistics/statistics';
 import { Settings } from './pages/settings/settings';
 import { Login } from './pages/login/login';
 import { ResetPassword } from './pages/reset-password/reset-password';
@@ -23,11 +22,6 @@ export const routes: Routes = [
   {
     path: 'log',
     component: Log,
-    canActivate: [authGuard]
-  },
-  {
-    path: 'statistics',
-    component: Statistics,
     canActivate: [authGuard]
   },
   {
