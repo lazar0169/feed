@@ -1,0 +1,152 @@
+<div class="page-container">
+  <div class="page-header">
+    <h2><i class="fas fa-moon"></i> Sleep</h2>
+
+    <div class="status-card" [class.asleep]="activeSession()">
+      <div class="status-text">
+        @if (activeSession(); as active) {
+          <span class="status-label">
+            {{ active.kind === 'night' ? 'Night sleep' : 'Napping' }} since {{ formatClock(active.startAt) }}
+          </span>
+          <span class="status-value">{{ formatDuration(statusMs() ?? 0) }}</span>
+        } @else if (statusMs() !== null) {
+          <span class="status-label">Awake for</span>
+          <span class="status-value">{{ formatDuration(statusMs()!) }}</span>
+        } @else {
+          <span class="status-label">No sleep logged yet</span>
+        }
+      </div>
+
+      @if (!activeSession()) {
+        <div class="kind-switch">
+          <button
+            type="button"
+            [class.active]="startKind() === 'nap'"
+            (click)="startKind.set('nap')"
+            aria-label="Nap"
+          >
+            <i class="fas fa-sun"></i>
+          </button>
+          <button
+            type="button"
+            [class.active]="startKind() === 'night'"
+            (click)="startKind.set('night')"
+            aria-label="Night sleep"
+          >
+            <i class="fas fa-moon"></i>
+          </button>
+        </div>
+      }
+
+      <button class="btn btn-primary sleep-toggle" [disabled]="isBusy()" (click)="toggleSleep()">
+        @if (activeSession()) {
+          <i class="fas fa-sun"></i>
+          <span>Woke up</span>
+        } @else {
+          <i class="fas fa-bed"></i>
+          <span>Fell asleep</span>
+        }
+      </button>
+    </div>
+
+    <div class="day-nav">
+      <button class="btn-icon" [disabled]="!canGoBack()" (click)="previousDay()" aria-label="Previous day">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <span class="day-label">{{ dayLabel() }}</span>
+      <button class="btn-icon" [disabled]="isToday()" (click)="nextDay()" aria-label="Next day">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+
+    <div class="sleep-stats">
+      <div class="stat">
+        <span class="stat-label">Total</span>
+        <span class="stat-value">{{ formatDuration(summary().totalMs) }}</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Naps</span>
+        <span class="stat-value">{{ summary().naps }}</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Longest</span>
+        <span class="stat-value">{{ formatDuration(summary().longestMs) }}</span>
+      </div>
+    </div>
+  </div>
+
+  @if (!showFormModal()) {
+    <button class="fab" (click)="openAdd()" aria-label="Add sleep">
+      <i class="fas fa-plus"></i>
+    </button>
+  }
+
+  @if (showFormModal()) {
+    <div class="modal-overlay" (click)="closeFormModal()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>
+            <i class="fas" [class.fa-pen]="editingSession()" [class.fa-plus-circle]="!editingSession()"></i>
+            {{ editingSession() ? 'Edit' : 'Add' }} Sleep
+          </h3>
+          <button class="btn-close" (click)="closeFormModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <app-sleep-form
+            [session]="editingSession()"
+            [defaultKind]="startKind()"
+            [allowOpenEnd]="allowOpenEnd()"
+            [error]="formError()"
+            (submitForm)="onSubmit($event)"
+          ></app-sleep-form>
+        </div>
+      </div>
+    </div>
+  }
+
+  <div class="list-section">
+    @if (isLoading()) {
+      <div class="empty-state"><p>Loading…</p></div>
+    } @else if (rows().length === 0) {
+      <div class="empty-state">
+        <i class="fas fa-bed"></i>
+        <p>No sleep logged {{ isToday() ? 'today' : 'this day' }}</p>
+        <small>Tap “Fell asleep” to start a timer, or + to add one.</small>
+      </div>
+    }
+
+    @for (row of rows(); track row.session.id) {
+      <article class="sleep-entry" [class.ongoing]="row.session.endAt === null">
+        <i class="fas kind-icon" [class.fa-moon]="row.session.kind === 'night'" [class.fa-sun]="row.session.kind === 'nap'"></i>
+        <div class="entry-main">
+          <span class="entry-range">
+            {{ formatEdge(row.session.startAt) }} –
+            {{ row.session.endAt !== null ? formatEdge(row.session.endAt) : 'now' }}
+          </span>
+          @if (row.session.note) {
+            <span class="entry-note">{{ row.session.note }}</span>
+          }
+        </div>
+        <span class="entry-duration">
+          {{ formatDuration((row.session.endAt ?? now()) - row.session.startAt) }}
+        </span>
+        <div class="entry-actions">
+          <button class="btn-icon" (click)="onEdit(row.session)" aria-label="Edit">
+            <i class="fas fa-pen"></i>
+          </button>
+          <button class="btn-icon btn-delete" (click)="onDelete(row.session.id)" aria-label="Delete">
+            <i class="fas fa-trash-alt"></i>
+          </button>
+        </div>
+      </article>
+      @if (row.wakeBeforeMs !== null) {
+        <div class="wake-gap">
+          <i class="fas fa-eye"></i>
+          <span>Awake {{ formatDuration(row.wakeBeforeMs) }}</span>
+        </div>
+      }
+    }
+  </div>
+</div>

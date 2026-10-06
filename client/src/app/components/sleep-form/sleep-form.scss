@@ -1,0 +1,121 @@
+.sleep-form {
+  background: var(--bg-medium);
+  padding: 1rem;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-medium);
+
+  .form-group {
+    margin-bottom: 1.25rem;
+
+    label {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      margin-bottom: 0.625rem;
+      color: var(--text-light);
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+
+      i {
+        font-size: 1.1rem;
+        color: var(--accent);
+      }
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 0.875rem 1rem;
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text-dark);
+      background: var(--bg-light);
+      border: 1px solid var(--border-medium);
+      border-radius: var(--radius);
+
+      &::placeholder {
+        color: var(--text-faint);
+        opacity: 1;
+      }
+
+      &:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-ring);
+      }
+    }
+  }
+}
+
+.kind-toggle {
+  display: flex;
+  gap: 0.5rem;
+
+  .toggle-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-light);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius);
+    cursor: pointer;
+
+    i,
+    span {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-light);
+    }
+
+    &.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+
+      i,
+      span {
+        color: var(--accent);
+      }
+    }
+  }
+}
+
+.field-hint {
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-faint);
+}
+
+.form-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--danger-color);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  color: var(--danger-color);
+}
+
+.form-actions {
+  display: flex;
+  margin-top: 1.5rem;
+
+  .btn {
+    flex: 1;
+    border-radius: var(--radius);
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+}
+
+@media (min-width: 768px) {
+  .sleep-form {
+    padding: 1.5rem;
+  }
+}

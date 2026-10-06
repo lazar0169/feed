@@ -1,0 +1,79 @@
+<form [formGroup]="sleepForm" (ngSubmit)="onSubmit()" class="sleep-form">
+  <div class="form-group">
+    <label>
+      <i class="fas fa-bed"></i>
+      <span>Type</span>
+    </label>
+    <div class="kind-toggle">
+      <button
+        type="button"
+        class="toggle-btn"
+        [class.active]="sleepForm.value.kind === 'nap'"
+        (click)="setKind('nap')"
+      >
+        <i class="fas fa-sun"></i>
+        <span>Nap</span>
+      </button>
+      <button
+        type="button"
+        class="toggle-btn"
+        [class.active]="sleepForm.value.kind === 'night'"
+        (click)="setKind('night')"
+      >
+        <i class="fas fa-moon"></i>
+        <span>Night</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label for="sleep-start">
+      <i class="fas fa-bed"></i>
+      <span>Fell asleep</span>
+    </label>
+    <input type="datetime-local" id="sleep-start" formControlName="start" class="form-control" />
+  </div>
+
+  <div class="form-group">
+    <label for="sleep-end">
+      <i class="fas fa-sun"></i>
+      <span>Woke up</span>
+    </label>
+    <input type="datetime-local" id="sleep-end" formControlName="end" class="form-control" />
+    @if (allowOpenEnd) {
+      <p class="field-hint">Leave empty if still asleep.</p>
+    }
+  </div>
+
+  <div class="form-group">
+    <label for="sleep-note">
+      <i class="fas fa-message"></i>
+      <span>Note (optional)</span>
+    </label>
+    <input
+      type="text"
+      id="sleep-note"
+      formControlName="note"
+      class="form-control"
+      placeholder="e.g., In the stroller"
+    />
+  </div>
+
+  @if (rangeError || error) {
+    <p class="form-error">
+      <i class="fas fa-circle-exclamation"></i>
+      <span>{{ rangeError || error }}</span>
+    </p>
+  }
+
+  <div class="form-actions">
+    <button
+      type="submit"
+      [class]="isEditMode ? 'btn btn-update' : 'btn btn-primary'"
+      [disabled]="!sleepForm.valid"
+    >
+      <i class="fas" [class.fa-check]="isEditMode" [class.fa-plus]="!isEditMode"></i>
+      <span>{{ isEditMode ? 'Update' : 'Add' }} Sleep</span>
+    </button>
+  </div>
+</form>
