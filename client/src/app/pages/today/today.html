@@ -35,6 +35,13 @@
         </div>
       }
     </div>
+    @if (sleepChipLabel(); as label) {
+      <a class="sleep-chip" routerLink="/sleep">
+        <i class="fas fa-moon"></i>
+        <span>{{ label }}</span>
+        <i class="fas fa-chevron-right chip-arrow"></i>
+      </a>
+    }
   </div>
 
   <!-- Floating Action Button -->

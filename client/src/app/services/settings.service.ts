@@ -6,6 +6,7 @@ export interface UserSettings {
   user_id: string;
   feeding_interval_hours: number | null; // null means disabled
   notifications_enabled: boolean; // whether to show browser notifications
+  wake_window_minutes?: number | null; // null/absent means disabled
   created_at?: string;
   updated_at?: string;
 }
@@ -193,6 +194,39 @@ export class SettingsService {
       console.error('Error updating notifications enabled:', error);
       return false;
     }
+  }
+
+  /**
+   * Update the wake-window reminder (minutes after waking), or null to disable.
+   * Only call when the value changed, so saves keep working on a database
+   * that predates the wake_window_minutes column.
+   */
+  async updateWakeWindow(minutes: number | null): Promise<boolean> {
+    const user = this.authService.currentUser();
+    const currentSettings = this.settings();
+    if (!user || !currentSettings?.id) return false;
+
+    try {
+      const { data, error } = await this.authService
+        .getSupabaseClient()
+        .from('user_settings')
+        .update({ wake_window_minutes: minutes })
+        .eq('id', currentSettings.id)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      this.settings.set(data);
+      return true;
+    } catch (error) {
+      console.error('Error updating wake window:', error);
+      return false;
+    }
+  }
+
+  getWakeWindowMinutes(): number | null {
+    return this.settings()?.wake_window_minutes ?? null;
   }
 
   /**

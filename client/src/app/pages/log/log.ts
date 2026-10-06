@@ -1,184 +1,239 @@
-import { Component, OnInit, DestroyRef, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CommonModule } from '@angular/common';
+import { interval } from 'rxjs';
 import { FeedingService } from '../../services/feeding.service';
+import { SleepService } from '../../services/sleep.service';
+import { AuthService } from '../../services/auth.service';
 import { FeedingEntry } from '../../models/feeding-entry.model';
+import { SleepSession, SleepSessionInput } from '../../models/sleep-session.model';
 import { FeedingForm } from '../../components/feeding-form/feeding-form';
 import { FeedingList } from '../../components/feeding-list/feeding-list';
+import { SleepForm } from '../../components/sleep-form/sleep-form';
+import { SleepEvent } from '../../components/sleep-event/sleep-event';
+import { formatDuration } from '../../utils/duration';
+import { LogFilter, buildTimeline } from '../../utils/timeline';
 
-interface DateGroup {
+type FeedFormData = {
   date: string;
-  entries: FeedingEntry[];
-  totalFeedings: number;
-  totalMilk: number;
-  solidFeeds: number;
-}
+  time: string;
+  amount: number;
+  name?: string;
+  spoons?: number;
+  comment?: string;
+};
 
 @Component({
   selector: 'app-log',
-  imports: [CommonModule, FeedingForm, FeedingList],
+  imports: [FeedingForm, FeedingList, SleepForm, SleepEvent],
   templateUrl: './log.html',
   styleUrl: './log.scss',
 })
 export class Log implements OnInit {
   private feedingService = inject(FeedingService);
+  private sleepService = inject(SleepService);
+  private authService = inject(AuthService);
   private destroyRef = inject(DestroyRef);
 
-  private readonly PAGE_SIZE = 100;
+  protected readonly PAGE_DAYS = 30;
+  protected readonly formatDuration = formatDuration;
 
-  // The recent window comes live from entries$; older history is paged in on
-  // demand. The two are disjoint by timestamp (window is >= windowStart,
-  // older is < windowStart), so combining them never duplicates a row.
-  private recentEntries = signal<FeedingEntry[]>([]);
-  private olderEntries = signal<FeedingEntry[]>([]);
-  private olderOffset = 0;
+  protected filter = signal<LogFilter>('all');
+  private now = signal(Date.now());
 
+  // Events before this are hidden; "Load older" moves it back PAGE_DAYS.
+  // Starts inside both services' in-memory windows, so nothing is fetched
+  // until the user asks for older history.
+  private historyStart = signal(this.daysAgo(this.PAGE_DAYS - 1));
+
+  // Rows older than the services' windows. Live rows are passed to the
+  // timeline first, so they win if a row is in both.
+  private olderFeeds = signal<FeedingEntry[]>([]);
+  private olderSleeps = signal<SleepSession[]>([]);
+  private earliestAt = signal<number | null>(null);
+
+  protected loadingOlder = signal(false);
   protected editingEntry = signal<FeedingEntry | undefined>(undefined);
-  protected hasMoreOlder = signal<boolean>(false);
-  protected loadingOlder = signal<boolean>(false);
+  protected editingSession = signal<SleepSession | undefined>(undefined);
+  protected sleepFormError = signal<string | null>(null);
 
-  protected dateGroups = computed<DateGroup[]>(() =>
-    this.groupByDate([...this.recentEntries(), ...this.olderEntries()])
+  protected days = computed(() =>
+    buildTimeline(
+      [...this.feedingService.entries(), ...this.olderFeeds()],
+      [...this.sleepService.sessions(), ...this.olderSleeps()],
+      { since: this.historyStart(), now: this.now(), filter: this.filter() },
+    ),
   );
 
-  ngOnInit(): void {
-    this.feedingService.entries$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(list => this.recentEntries.set(list));
+  protected hasMoreOlder = computed(() => {
+    const earliest = this.earliestAt();
+    return earliest !== null && earliest < this.historyStart();
+  });
 
-    // Pull the first page of pre-window history so the log shows more than the
-    // recent window; further pages load on demand via the "Load older" button.
-    this.loadOlder();
+  protected allowOpenEnd = computed(() => {
+    const active = this.sleepService.activeSession();
+    return !active || active.id === this.editingSession()?.id;
+  });
+
+  constructor() {
+    effect(() => {
+      if (this.authService.currentUser()) this.loadEarliest();
+    });
+  }
+
+  ngOnInit(): void {
+    // Keeps "sleeping now" day totals current.
+    interval(60000)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.now.set(Date.now()));
   }
 
   protected async loadOlder(): Promise<void> {
     if (this.loadingOlder()) return;
     this.loadingOlder.set(true);
-    const page = await this.feedingService.loadOlderEntries(this.olderOffset, this.PAGE_SIZE);
-    if (page.length > 0) {
-      this.olderEntries.set([...this.olderEntries(), ...page]);
-      this.olderOffset += page.length;
-    }
-    this.hasMoreOlder.set(page.length === this.PAGE_SIZE);
+
+    const to = this.historyStart();
+    const fromDate = new Date(to);
+    fromDate.setDate(fromDate.getDate() - this.PAGE_DAYS);
+    const from = fromDate.getTime();
+
+    // Only fetch what the services don't already hold in memory.
+    const [feeds, sleeps] = await Promise.all([
+      this.feedingService.loadEntriesRange(
+        from,
+        Math.min(to, this.feedingService.getWindowStart()),
+      ),
+      this.sleepService.loadSessionsRange(from, Math.min(to, this.sleepService.getWindowStart())),
+    ]);
+    this.olderFeeds.update((list) => [...list, ...feeds]);
+    this.olderSleeps.update((list) => [...list, ...sleeps]);
+    this.historyStart.set(from);
     this.loadingOlder.set(false);
   }
 
-  protected async onSubmit(formData: { date: string; time: string; amount: number; name?: string; spoons?: number; comment?: string }): Promise<void> {
-    const editing = this.editingEntry();
-    if (editing) {
-      await this.feedingService.updateEntry(editing.id, formData);
-      this.reconcileOlderAfterEdit(editing.id, formData);
-    } else {
-      // New entries are timestamped "now", so they land in the recent window
-      // and surface through the entries$ subscription automatically.
-      await this.feedingService.createEntry({ ...formData, type: 'milk' });
-    }
-    this.editingEntry.set(undefined);
-  }
+  // ---- Feeds ----
 
-  protected onEdit(entry: FeedingEntry): void {
+  protected onEditFeed(entry: FeedingEntry): void {
     this.editingEntry.set(entry);
   }
 
-  protected onCancelEdit(): void {
+  protected closeFeedForm(): void {
     this.editingEntry.set(undefined);
   }
 
-  protected async onDelete(id: string): Promise<void> {
+  protected async onFeedSubmit(formData: FeedFormData): Promise<void> {
+    const editing = this.editingEntry();
+    if (!editing) return;
+    await this.feedingService.updateEntry(editing.id, formData);
+    this.reconcileOlderFeed(editing.id, formData);
+    this.editingEntry.set(undefined);
+  }
+
+  protected async onDeleteFeed(id: string): Promise<void> {
     await this.feedingService.deleteEntry(id);
-    // Recent-window rows drop via entries$; older rows we remove locally.
-    const older = this.olderEntries();
-    if (older.some(e => e.id === id)) {
-      this.olderEntries.set(older.filter(e => e.id !== id));
-    }
+    this.olderFeeds.update((list) => list.filter((e) => e.id !== id));
   }
 
   /**
-   * Keep the older-history store consistent after an edit. Recent-window edits
-   * flow through entries$, so this only handles rows in the older store —
-   * including the rare case where an edit moves a row into the recent window.
+   * Recent-window edits flow through the service; this only patches rows in
+   * the older store, including the rare edit that moves one into the window.
    */
-  private reconcileOlderAfterEdit(
-    id: string,
-    formData: { date: string; time: string; amount: number; name?: string; spoons?: number; comment?: string }
-  ): void {
-    const older = this.olderEntries();
-    const idx = older.findIndex(e => e.id === id);
-    if (idx === -1) return; // was a recent entry
+  private reconcileOlderFeed(id: string, formData: FeedFormData): void {
+    const older = this.olderFeeds();
+    const idx = older.findIndex((e) => e.id === id);
+    if (idx === -1) return;
 
     const merged: FeedingEntry = { ...older[idx], ...formData };
     merged.timestamp = new Date(`${merged.date}T${merged.time}`).getTime();
 
     if (merged.timestamp >= this.feedingService.getWindowStart()) {
-      // Crossed into the recent window: drop it here and refresh the window.
-      this.olderEntries.set(older.filter(e => e.id !== id));
+      this.olderFeeds.set(older.filter((e) => e.id !== id));
       this.feedingService.reload();
     } else {
-      const next = [...older];
-      next[idx] = merged;
-      this.olderEntries.set(next);
+      this.olderFeeds.set(older.map((e) => (e.id === id ? merged : e)));
     }
   }
 
-  private groupByDate(entries: FeedingEntry[]): DateGroup[] {
-    const byDate = new Map<string, FeedingEntry[]>();
-    for (const e of entries) {
-      const arr = byDate.get(e.date);
-      if (arr) {
-        arr.push(e);
-      } else {
-        byDate.set(e.date, [e]);
-      }
+  // ---- Sleep ----
+
+  protected onEditSleep(session: SleepSession): void {
+    this.sleepFormError.set(null);
+    this.editingSession.set(session);
+  }
+
+  protected closeSleepForm(): void {
+    this.editingSession.set(undefined);
+    this.sleepFormError.set(null);
+  }
+
+  protected async onSleepSubmit(input: SleepSessionInput): Promise<void> {
+    const editing = this.editingSession();
+    if (!editing) return;
+
+    const overlap = this.sleepService.findOverlap(
+      input.startAt,
+      input.endAt,
+      editing.id,
+      this.olderSleeps(),
+    );
+    if (overlap) {
+      const end = overlap.endAt !== null ? this.formatClock(overlap.endAt) : 'now';
+      const what = overlap.kind === 'night' ? 'night sleep' : 'nap';
+      this.sleepFormError.set(`Overlaps with ${what} ${this.formatClock(overlap.startAt)}–${end}.`);
+      return;
     }
 
-    return Array.from(byDate.entries())
-      .sort((a, b) => b[0].localeCompare(a[0]))
-      .map(([date, list]) => {
-        const sorted = [...list].sort((a, b) => b.time.localeCompare(a.time));
-        const milkEntries = sorted.filter(e => e.type !== 'solid');
-        const solidEntries = sorted.filter(e => e.type === 'solid');
-        return {
-          date,
-          entries: sorted,
-          totalFeedings: sorted.length,
-          totalMilk: milkEntries.reduce((sum, e) => sum + e.amount, 0),
-          solidFeeds: solidEntries.length,
-        };
-      });
+    if (!(await this.sleepService.updateSession(editing.id, input))) {
+      this.sleepFormError.set("Couldn't save. Please try again.");
+      return;
+    }
+    this.olderSleeps.update((list) =>
+      list.map((s) => (s.id === editing.id ? { ...input, id: editing.id } : s)),
+    );
+    this.closeSleepForm();
   }
+
+  protected async onDeleteSleep(id: string): Promise<void> {
+    await this.sleepService.deleteSession(id);
+    this.olderSleeps.update((list) => list.filter((s) => s.id !== id));
+  }
+
+  // ---- Formatting ----
 
   protected formatDate(dateString: string): string {
-    // Create dates and normalize to local midnight for comparison
-    const inputDate = new Date(dateString + 'T00:00:00');
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    // Normalize input date to midnight for fair comparison
-    inputDate.setHours(0, 0, 0, 0);
-
-    // Compare timestamps
-    if (inputDate.getTime() === today.getTime()) {
-      return 'Today';
-    } else if (inputDate.getTime() === yesterday.getTime()) {
-      return 'Yesterday';
-    } else {
-      return inputDate.toLocaleDateString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric'
-      });
-    }
+    const date = new Date(`${dateString}T00:00:00`).getTime();
+    if (date === this.daysAgo(0)) return 'Today';
+    if (date === this.daysAgo(1)) return 'Yesterday';
+    return new Date(date).toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
   }
 
   protected formatDateBadge(dateString: string): string {
-    // Format date as DD.MM.YYYY
-    const date = new Date(dateString + 'T00:00:00');
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
+    const [year, month, day] = dateString.split('-');
     return `${day}.${month}.${year}`;
+  }
+
+  private formatClock(ms: number): string {
+    const d = new Date(ms);
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }
+
+  /** Local midnight `n` days before today. */
+  private daysAgo(n: number): number {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - n);
+    return d.getTime();
+  }
+
+  private async loadEarliest(): Promise<void> {
+    const results = await Promise.all([
+      this.feedingService.getEarliestTimestamp(),
+      this.sleepService.getEarliestStart(),
+    ]);
+    const known = results.filter((t): t is number => t !== null);
+    this.earliestAt.set(known.length > 0 ? Math.min(...known) : null);
   }
 }

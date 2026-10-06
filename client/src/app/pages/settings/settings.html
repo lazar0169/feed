@@ -97,6 +97,49 @@
     }
   </div>
 
+  <div class="settings-card">
+    <h3><i class="fas fa-moon"></i> Wake Window Reminder</h3>
+    <p class="settings-description">
+      Get a notification when the baby has been awake this long since the last sleep.
+    </p>
+
+    <div class="form-group">
+      <label class="toggle-label">
+        <input
+          type="checkbox"
+          [checked]="wakeWindowEnabled()"
+          (change)="wakeWindowEnabled.set($any($event.target).checked)"
+          class="toggle-input"
+        />
+        <span class="toggle-switch"></span>
+        <span class="toggle-text">Enable Wake Window Reminder</span>
+      </label>
+    </div>
+
+    @if (wakeWindowEnabled()) {
+      <div class="form-group">
+        <label for="wake-window-minutes">
+          <i class="fas fa-eye"></i>
+          Wake window <span class="unit">(minutes)</span>
+        </label>
+        <input
+          id="wake-window-minutes"
+          type="number"
+          min="15"
+          max="600"
+          step="15"
+          [value]="wakeWindowMinutes()"
+          (change)="onWakeWindowChange(+$any($event.target).value)"
+          class="form-control"
+          placeholder="120"
+        />
+        <small class="form-hint">
+          Uses the browser notification permission and toggle from the feeding reminder.
+        </small>
+      </div>
+    }
+  </div>
+
   <div class="form-actions">
     <button
       class="btn btn-primary"
