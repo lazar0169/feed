@@ -1,0 +1,42 @@
+<article class="sleep-event" [class.is-active]="isActive" (click)="toggle()">
+  <div class="time-chip">
+    <i class="fas fa-clock" aria-hidden="true"></i>
+    <span class="time">{{ time }}</span>
+  </div>
+
+  <div class="event-meta">
+    @if (kind === 'sleep-start') {
+      <i
+        class="fas"
+        [class.fa-moon]="session.kind === 'night'"
+        [class.fa-bed]="session.kind === 'nap'"
+        aria-hidden="true"
+      ></i>
+      <span class="label">{{ session.kind === 'night' ? 'Night sleep' : 'Nap' }}</span>
+      @if (session.endAt === null) {
+        <span class="detail ongoing">sleeping now</span>
+      }
+    } @else {
+      <i class="fas fa-sun" aria-hidden="true"></i>
+      <span class="label">Woke up</span>
+      <span class="detail">slept {{ sleptFor }}</span>
+    }
+  </div>
+
+  <div class="event-actions">
+    <button
+      class="btn-icon btn-edit"
+      (click)="onEdit(); $event.stopPropagation()"
+      aria-label="Edit sleep"
+    >
+      <i class="fas fa-pen"></i>
+    </button>
+    <button
+      class="btn-icon btn-delete"
+      (click)="onDelete(); $event.stopPropagation()"
+      aria-label="Delete sleep"
+    >
+      <i class="fas fa-trash-alt"></i>
+    </button>
+  </div>
+</article>

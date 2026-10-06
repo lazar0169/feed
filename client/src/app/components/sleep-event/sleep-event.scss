@@ -1,0 +1,113 @@
+// Mirrors .feeding-entry in feeding-list.scss so the two row types read as
+// one list in the Log; keep them in sync.
+.sleep-event {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  background: var(--bg-medium);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+
+  &.is-active {
+    background: var(--bg-light);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+}
+
+.time-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: var(--radius-pill);
+  background: var(--bg-dark);
+  border: 1px solid var(--border-subtle);
+
+  i {
+    font-size: 0.85rem;
+    color: var(--accent);
+  }
+
+  .time {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.event-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 0.75rem;
+  flex: 1;
+  min-width: 0;
+
+  i {
+    color: var(--accent);
+  }
+
+  .label {
+    font-weight: 600;
+    color: var(--text-dark);
+  }
+
+  .detail {
+    margin-left: auto;
+    font-size: 0.8rem;
+    color: var(--text-light);
+    white-space: nowrap;
+
+    &.ongoing {
+      color: var(--accent);
+    }
+  }
+}
+
+.event-actions {
+  display: flex;
+  gap: 0.35rem;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    max-width 0.18s ease,
+    opacity 0.18s ease;
+
+  .is-active & {
+    max-width: 96px;
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.btn-icon {
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+
+  i {
+    font-size: 0.8rem;
+  }
+}
+
+.btn-edit {
+  color: var(--accent);
+}
+
+.btn-delete {
+  color: var(--danger-color);
+}

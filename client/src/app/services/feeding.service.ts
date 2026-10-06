@@ -31,11 +31,8 @@ export class FeedingService {
   // Only the most recent window of entries is kept in memory. This keeps the
   // startup fetch (and every consumer that scans the whole list) bounded as
   // history grows. Older entries are fetched on demand by the Log page via
-  // loadOlderEntries().
+  // loadEntriesRange().
   private readonly RECENT_WINDOW_DAYS = 90;
-
-  // Page size for on-demand paging of older (pre-window) history in the Log.
-  private readonly OLDER_PAGE_SIZE = 100;
 
   // Explicit column list instead of select('*') to avoid over-fetching.
   private readonly ENTRY_COLUMNS =
@@ -48,7 +45,7 @@ export class FeedingService {
       authService.getSupabaseClient(),
       'feeding_entries',
       () => this.loadEntries(true),
-      id => this.entriesSubject.value.some(e => e.id === id)
+      (id) => this.entriesSubject.value.some((e) => e.id === id),
     );
 
     // Modern Angular: Use effect to watch signal changes
@@ -96,33 +93,48 @@ export class FeedingService {
   }
 
   /**
-   * Fetch a page of OLDER entries — those before the in-memory recent window.
-   * These are deliberately NOT added to entries$; the Log page keeps its own
-   * paginated store. The strict timestamp boundary (window is >= windowStart,
-   * older is < windowStart) guarantees no overlap with entries$. Returns []
-   * on error.
+   * Fetch entries with timestamp in [from, to) for the Log's history. Not
+   * added to entries$; the Log keeps them in its own store. Returns [] on error.
    */
-  async loadOlderEntries(offset: number, pageSize: number = this.OLDER_PAGE_SIZE): Promise<FeedingEntry[]> {
+  async loadEntriesRange(from: number, to: number): Promise<FeedingEntry[]> {
     const user = this.authService.currentUser();
-    if (!user) return [];
+    if (!user || from >= to) return [];
 
     try {
-      const supabase = this.authService.getSupabaseClient();
-      const { data, error } = await supabase
+      const { data, error } = await this.authService
+        .getSupabaseClient()
         .from('feeding_entries')
         .select(this.ENTRY_COLUMNS)
         .eq('user_id', user.id)
-        .lt('timestamp', this.getWindowStart())
-        .order('timestamp', { ascending: false })
-        .range(offset, offset + pageSize - 1);
+        .gte('timestamp', from)
+        .lt('timestamp', to)
+        .order('timestamp', { ascending: false });
 
       if (error) throw error;
 
-      return (data || []).map(entry => this.mapRow(entry as FeedingEntryDb));
+      return (data || []).map((entry) => this.mapRow(entry as FeedingEntryDb));
     } catch (error) {
-      console.error('Error loading older entries:', error);
+      console.error('Error loading entries range:', error);
       return [];
     }
+  }
+
+  /** Timestamp of the user's oldest entry, or null if none / on error. */
+  async getEarliestTimestamp(): Promise<number | null> {
+    const user = this.authService.currentUser();
+    if (!user) return null;
+
+    const { data, error } = await this.authService
+      .getSupabaseClient()
+      .from('feeding_entries')
+      .select('timestamp')
+      .eq('user_id', user.id)
+      .order('timestamp', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) console.error('Error loading earliest entry:', error);
+    return data?.timestamp ?? null;
   }
 
   /** Map a raw DB row to a FeedingEntry (null type defaults to milk). */

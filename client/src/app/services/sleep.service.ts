@@ -178,13 +178,64 @@ export class SleepService {
   }
 
   /**
-   * First loaded session overlapping [startAt, endAt) — an open end counts as
-   * "until now". Used to reject double-logged sleep before writing.
+   * Fetch sessions overlapping [from, to) for the Log's history (a night that
+   * started before `from` still has its wake-up inside). Not added to
+   * `sessions`. Returns [] on error.
    */
-  findOverlap(startAt: number, endAt: number | null, excludeId?: string): SleepSession | undefined {
+  async loadSessionsRange(from: number, to: number): Promise<SleepSession[]> {
+    const user = this.authService.currentUser();
+    if (!user || from >= to) return [];
+
+    try {
+      const { data, error } = await this.authService
+        .getSupabaseClient()
+        .from('sleep_sessions')
+        .select(this.COLUMNS)
+        .eq('user_id', user.id)
+        .lt('start_at', new Date(to).toISOString())
+        .gte('end_at', new Date(from).toISOString())
+        .order('start_at', { ascending: false });
+
+      if (error) throw error;
+      return (data || []).map((row) => this.mapRow(row as SleepSessionDb));
+    } catch (error) {
+      console.error('Error loading sleep sessions range:', error);
+      return [];
+    }
+  }
+
+  /** Start of the user's oldest session, or null if none / on error. */
+  async getEarliestStart(): Promise<number | null> {
+    const user = this.authService.currentUser();
+    if (!user) return null;
+
+    const { data, error } = await this.authService
+      .getSupabaseClient()
+      .from('sleep_sessions')
+      .select('start_at')
+      .eq('user_id', user.id)
+      .order('start_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) console.error('Error loading earliest sleep session:', error);
+    return data?.start_at ? Date.parse(data.start_at) : null;
+  }
+
+  /**
+   * First loaded session overlapping [startAt, endAt) — an open end counts as
+   * "until now". Used to reject double-logged sleep before writing; `extra`
+   * covers sessions held outside the window (the Log's older history).
+   */
+  findOverlap(
+    startAt: number,
+    endAt: number | null,
+    excludeId?: string,
+    extra: SleepSession[] = [],
+  ): SleepSession | undefined {
     const now = Date.now();
     const end = endAt ?? now;
-    return this.sessions().find(
+    return [...this.sessions(), ...extra].find(
       (s) => s.id !== excludeId && s.startAt < end && (s.endAt ?? now) > startAt,
     );
   }
