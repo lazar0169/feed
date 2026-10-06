@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Repository layout
 
 Two-part repo:
+
 - `client/` — Angular 21 PWA. **All frontend work happens here; run every `npm` command from `client/`.**
 - `supabase/` — database migrations, `config.toml`, `seed.sql`, and edge functions
 
@@ -20,7 +21,7 @@ npx ng test --watch=false --include='**/foo.spec.ts'  # one spec file
 npm run deploy     # prod build + force-push to `public` branch (CI runs this; rarely run by hand)
 ```
 
-No lint script. Tests run under **Vitest** (not Karma/Jasmine) and currently only `app.spec.ts` exists. Prettier config is in `package.json` (`printWidth: 100`, `singleQuote: true`).
+No lint script. Tests run under **Vitest** (not Karma/Jasmine) with specs for `App`, `SleepService`, `feeding-form` and `sleep-form`; services are tested against a fake `AuthService` whose `getSupabaseClient()` returns a hand-rolled chainable query stub (see `sleep.service.spec.ts`). Prettier config is in `package.json` (`printWidth: 100`, `singleQuote: true`).
 
 Database (from repo root, needs the Supabase CLI): `supabase start`, `supabase db reset` (re-applies all migrations + `seed.sql` locally), `supabase migration new <name>`, `supabase db push` (applies to the remote project).
 
@@ -37,10 +38,11 @@ Angular 21, fully standalone (no NgModules), signal-first. Backend is **Supabase
 The services form a reactive chain driven by auth signals:
 
 - **`AuthService`** owns the one `SupabaseClient` (created from `environment.supabase`). Everything else reaches Supabase via `authService.getSupabaseClient()` — do not create additional clients. It exposes `currentUser` / `currentProfile` / `isAuthenticated` signals kept in sync by Supabase's `onAuthStateChange`. **Login is by username, not email**: `signIn()` looks up the email from `profiles` (case-insensitive `ilike`), then does email/password auth; `signUp()` creates both the auth user and the `profiles` row.
-- **`FeedingService`** holds entries in an RxJS `BehaviorSubject` exposed as `entries$`, plus an `isLoading` signal. **`entries$` only holds the last 90 days** (`RECENT_WINDOW_DAYS`, filtered on `timestamp`) to keep startup bounded; everything that reads `getAllEntries()`/`entries$` — Today, notifications — sees only that window. Older history is fetched on demand by `loadOlderEntries(offset, pageSize)` (strictly `< windowStart`, so no overlap) and is deliberately *not* merged into `entries$`; the Log page keeps its own paginated store for it. An `effect()` on `authService.currentUser()` reloads on login and clears on logout. All CRUD writes to Supabase then **optimistically mutates the local `BehaviorSubject`** rather than refetching.
+- **`FeedingService`** holds entries in an RxJS `BehaviorSubject` exposed as `entries$`, plus an `isLoading` signal. **`entries$` only holds the last 90 days** (`RECENT_WINDOW_DAYS`, filtered on `timestamp`) to keep startup bounded; everything that reads `getAllEntries()`/`entries$` — Today, notifications — sees only that window. Older history is fetched on demand by `loadOlderEntries(offset, pageSize)` (strictly `< windowStart`, so no overlap) and is deliberately _not_ merged into `entries$`; the Log page keeps its own paginated store for it. An `effect()` on `authService.currentUser()` reloads on login and clears on logout. All CRUD writes to Supabase then **optimistically mutates the local `BehaviorSubject`** rather than refetching.
 - **`SettingsService`** stores per-user `user_settings` (feeding interval + notifications toggle) in a signal, lazily creating a default row (3h interval) on first load via the `PGRST116` "no rows" path. Same auth-`effect()` load pattern as FeedingService.
 - **`SleepService`** — same auth-`effect()` load + optimistic-write pattern, but **signal-only** (`sessions` signal, no BehaviorSubject) and a 30-day window (plus any never-stopped session). `activeSession` is the row with `endAt === null` (the live timer); `findOverlap()` is checked client-side before every write since the DB doesn't enforce non-overlap. Day helpers (`getSessionsForDay`, `getDaySummary`) clip sessions to local-midnight boundaries because sleep crosses midnight.
-- **`NotificationService`** runs an `effect()` over user + settings + entries and schedules a browser `Notification` via `setTimeout` for the next feeding. Next-feed time = latest entry's `date`+`time` + interval. `getTimeUntilNextNotification()` returns a signed ms value (negative = overdue) and is the source of truth the Today page reads for its countdown UI.
+- **Live sync** — `FeedingService` and `SleepService` each own a `TableSync` (`services/table-sync.ts`): a Supabase Realtime subscription to the user's rows plus a `visibilitychange` listener. Any change triggers a debounced _silent_ reload of the in-memory window (no `isLoading` flip, keeps data on error) rather than patching rows, so window/sort logic stays in the service. Realtime requires the tables in the `supabase_realtime` publication (`20261006120000` migration).
+- **`NotificationService`** runs an `effect()` over user + settings + entries (it must read the `entries` signal, not `getAllEntries()`, or new feeds won't reschedule) and schedules a browser `Notification` via `setTimeout` for the next feeding. Next-feed time = latest entry's `date`+`time` + interval. `getTimeUntilNextNotification()` returns a signed ms value (negative = overdue) and is the source of truth the Today page reads for its countdown UI. A second effect schedules the optional **wake-window reminder** (`user_settings.wake_window_minutes`, NULL = off) from `SleepService.getLastWakeAt()`; unlike feeds, a reminder already in the past is skipped, not fired late.
 - **`StorageService`** is a thin typed `localStorage` wrapper (not currently central to data flow).
 
 `FeedingService` also exposes `entries`, a `toSignal` mirror of `entries$`. Today derives its state from it with `computed()`; Log subscribes to `entries$` with `takeUntilDestroyed`. Prefer signals/`computed()` for new code, and don't subscribe inside an `effect()`.
@@ -51,20 +53,21 @@ The services form a reactive chain driven by auth signals:
 
 ### Routing & guard
 
-Routes in `app.routes.ts`; protected routes (`today`, `log`, `sleep`, `settings`) use `authGuard` (`guards/auth.guard.ts`), which awaits a live Supabase session and redirects to `/login?returnUrl=…` otherwise. Unknown paths → `/login`, `''` → `/today`.
+Routes in `app.routes.ts`; everything except `today` is lazy-loaded with `loadComponent` (`ngsw-config.json` prefetches `/*.js`, so lazy chunks still work offline). Protected routes (`today`, `log`, `sleep`, `settings`) use `authGuard` (`guards/auth.guard.ts`), which awaits a live Supabase session and redirects to `/login?returnUrl=…` otherwise. Unknown paths → `/login`, `''` → `/today`.
 
 ### Pages & shared components
 
-- **`today`** — primary screen: add/edit/delete today's entries, running milk (ml) + solids (g/spoons) totals via `computed()`, and a live "next feed" countdown that recomputes every 60s and switches label/icon/CSS class between *next feed in* / *feeding time* (±10 min window) / *overdue*.
-- **`log`** — history grouped by date with per-day totals; formats dates as Today/Yesterday/weekday.
+- **`today`** — primary screen: add/edit/delete today's entries, running milk (ml) + solids (g/spoons) totals via `computed()`, and a live "next feed" countdown that recomputes every 60s and switches label/icon/CSS class between _next feed in_ / _feeding time_ (±10 min window) / _overdue_. Shows an "asleep for" chip linking to `/sleep` while a sleep session is running.
+- **`log`** — history grouped by date with per-day totals (plus total sleep for days inside the sleep window); formats dates as Today/Yesterday/weekday.
 - **`sleep`** — live asleep/awake card with a one-tap start/stop timer (nap vs. night guessed from the hour), per-day totals with a day navigator, and a session list showing the awake gap (wake window) between sessions. Manual add/edit goes through `components/sleep-form`, which may leave the end empty ("still asleep") only when no other session is in progress.
-- **`settings`** — interval + notification toggles, permission request, test notification, logout.
+- **`settings`** — feeding interval, wake-window reminder, notification toggles, permission request, test notification, logout. The wake window is only written when it changed, so saves still work against a database without that column.
 - **`components/feeding-form`** — the one reactive form for both create and edit, milk and solid. Validators are swapped dynamically (`updateSolidValidators`): solids require `name` and either grams **or** spoons (mutually exclusive — picking spoons forces `amount` to 0). This is the trickiest client logic; read it before touching entry creation.
 - **`components/feeding-list`** — renders entries; measures food-name chip overflow in `ngAfterViewChecked` and sets a `--marquee-offset` CSS var to scroll long names (the subject of several recent commits).
 
 ## Data model
 
 `FeedingEntry` (`models/feeding-entry.model.ts`) is discriminated on `type: 'milk' | 'solid'`:
+
 - **milk** → `amount` is ml.
 - **solid** → `amount` is grams (0 when measured in spoons instead) plus optional `name` and `spoons`.
 

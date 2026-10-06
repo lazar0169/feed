@@ -4,6 +4,7 @@ import { interval } from 'rxjs';
 import { SleepService } from '../../services/sleep.service';
 import { SleepKind, SleepSession, SleepSessionInput } from '../../models/sleep-session.model';
 import { SleepForm } from '../../components/sleep-form/sleep-form';
+import { formatDuration } from '../../utils/duration';
 
 /** A session in the day list, with the awake gap that preceded it. */
 interface SleepRow {
@@ -35,14 +36,14 @@ export class Sleep implements OnInit {
   protected formError = signal<string | null>(null);
 
   protected isToday = computed(
-    () => this.selectedDay() === this.sleepService.startOfDay(this.now())
+    () => this.selectedDay() === this.sleepService.startOfDay(this.now()),
   );
   protected canGoBack = computed(
-    () => this.selectedDay() > this.sleepService.startOfDay(this.sleepService.getWindowStart())
+    () => this.selectedDay() > this.sleepService.startOfDay(this.sleepService.getWindowStart()),
   );
 
   protected summary = computed(() =>
-    this.sleepService.getDaySummary(this.selectedDay(), this.now())
+    this.sleepService.getDaySummary(this.selectedDay(), this.now()),
   );
 
   /** Newest first, each with the awake time since the previous session ended. */
@@ -53,7 +54,7 @@ export class Sleep implements OnInit {
         const prevEnd = i > 0 ? sessions[i - 1].endAt : null;
         return {
           session,
-          wakeBeforeMs: prevEnd !== null ? Math.max(0, session.startAt - prevEnd) : null
+          wakeBeforeMs: prevEnd !== null ? Math.max(0, session.startAt - prevEnd) : null,
         };
       })
       .reverse();
@@ -133,7 +134,7 @@ export class Sleep implements OnInit {
     if (overlap) {
       const end = overlap.endAt !== null ? this.formatClock(overlap.endAt) : 'now';
       this.formError.set(
-        `Overlaps with ${overlap.kind === 'night' ? 'night sleep' : 'nap'} ${this.formatClock(overlap.startAt)}–${end}.`
+        `Overlaps with ${overlap.kind === 'night' ? 'night sleep' : 'nap'} ${this.formatClock(overlap.startAt)}–${end}.`,
       );
       return;
     }
@@ -151,15 +152,11 @@ export class Sleep implements OnInit {
   }
 
   protected async onDelete(id: string): Promise<void> {
+    if (!confirm('Are you sure you want to delete this sleep?')) return;
     await this.sleepService.deleteSession(id);
   }
 
-  protected formatDuration(ms: number): string {
-    const totalMinutes = Math.max(0, Math.floor(ms / 60000));
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    return hours > 0 ? `${hours}h ${String(minutes).padStart(2, '0')}m` : `${minutes}m`;
-  }
+  protected readonly formatDuration = formatDuration;
 
   protected formatClock(ms: number): string {
     const d = new Date(ms);
@@ -182,7 +179,7 @@ export class Sleep implements OnInit {
     return new Date(this.selectedDay()).toLocaleDateString(undefined, {
       weekday: 'short',
       day: 'numeric',
-      month: 'short'
+      month: 'short',
     });
   }
 

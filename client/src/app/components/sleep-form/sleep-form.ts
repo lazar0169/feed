@@ -1,11 +1,19 @@
-import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  OnChanges,
+  OnInit,
+  Output,
+  SimpleChanges,
+} from '@angular/core';
 import {
   AbstractControl,
   FormBuilder,
   FormGroup,
   ReactiveFormsModule,
   ValidationErrors,
-  Validators
+  Validators,
 } from '@angular/forms';
 import { SleepKind, SleepSession, SleepSessionInput } from '../../models/sleep-session.model';
 
@@ -50,9 +58,11 @@ export class SleepForm implements OnInit, OnChanges {
       kind: this.session?.kind ?? this.defaultKind,
       start: this.toLocalInput(this.session?.startAt ?? now - 60 * 60 * 1000),
       end: this.session
-        ? this.session.endAt === null ? '' : this.toLocalInput(this.session.endAt)
+        ? this.session.endAt === null
+          ? ''
+          : this.toLocalInput(this.session.endAt)
         : this.toLocalInput(now),
-      note: this.session?.note ?? ''
+      note: this.session?.note ?? '',
     };
 
     if (this.sleepForm) {
@@ -63,9 +73,9 @@ export class SleepForm implements OnInit, OnChanges {
           kind: [value.kind, Validators.required],
           start: [value.start, Validators.required],
           end: [value.end],
-          note: [value.note]
+          note: [value.note],
         },
-        { validators: control => this.validateRange(control) }
+        { validators: (control) => this.validateRange(control) },
       );
     }
   }
@@ -105,7 +115,7 @@ export class SleepForm implements OnInit, OnChanges {
       kind: raw.kind,
       startAt: this.parseLocal(raw.start)!,
       endAt: this.parseLocal(raw.end),
-      note: raw.note || undefined
+      note: raw.note || undefined,
     });
   }
 

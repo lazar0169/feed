@@ -47,6 +47,26 @@
   font-variant-numeric: tabular-nums;
 }
 
+.sleep-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-ring);
+  border-radius: var(--radius-pill);
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+
+  .chip-arrow {
+    margin-left: auto;
+    font-size: 0.7rem;
+  }
+}
+
 // Feeding time status variations
 .stat.feeding-time {
   border-color: var(--accent-ring);

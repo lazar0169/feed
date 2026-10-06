@@ -1,6 +1,7 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { SleepKind, SleepSession, SleepSessionInput } from '../models/sleep-session.model';
 import { AuthService } from './auth.service';
+import { TableSync } from './table-sync';
 
 interface SleepSessionDb {
   id: string;
@@ -21,7 +22,7 @@ export interface SleepDaySummary {
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class SleepService {
   private authService = inject(AuthService);
@@ -32,30 +33,40 @@ export class SleepService {
   readonly isLoading = signal<boolean>(false);
 
   /** The in-progress session, if the baby is currently asleep. */
-  readonly activeSession = computed(() => this.sessions().find(s => s.endAt === null) ?? null);
+  readonly activeSession = computed(() => this.sessions().find((s) => s.endAt === null) ?? null);
 
   // Only recent history is kept in memory; enough for the day navigator.
   private readonly RECENT_WINDOW_DAYS = 30;
 
   private readonly COLUMNS = 'id, kind, start_at, end_at, note';
 
+  private sync = new TableSync(
+    this.authService.getSupabaseClient(),
+    'sleep_sessions',
+    () => this.loadSessions(true),
+    (id) => this.sessions().some((s) => s.id === id),
+  );
+
   constructor() {
     effect(() => {
       const user = this.authService.currentUser();
       if (user) {
         this.loadSessions();
+        this.sync.start(user.id);
       } else {
+        this.sync.stop();
         this.sessions.set([]);
         this.isLoading.set(false);
       }
     });
   }
 
-  private async loadSessions(): Promise<void> {
+  /** A silent load (live sync) skips isLoading and keeps data on failure. */
+  private async loadSessions(silent = false): Promise<void> {
     const user = this.authService.currentUser();
     if (!user) return;
 
-    this.isLoading.set(true);
+    if (!silent) this.isLoading.set(true);
     try {
       const since = new Date(this.getWindowStart()).toISOString();
       const { data, error } = await this.authService
@@ -68,12 +79,12 @@ export class SleepService {
         .order('start_at', { ascending: false });
 
       if (error) throw error;
-      this.sessions.set((data || []).map(row => this.mapRow(row as SleepSessionDb)));
+      this.sessions.set((data || []).map((row) => this.mapRow(row as SleepSessionDb)));
     } catch (error) {
       console.error('Error loading sleep sessions:', error);
-      this.sessions.set([]);
+      if (!silent) this.sessions.set([]);
     } finally {
-      this.isLoading.set(false);
+      if (!silent) this.isLoading.set(false);
     }
   }
 
@@ -83,7 +94,7 @@ export class SleepService {
     const created = await this.createSession({ kind, startAt: Date.now(), endAt: null });
     if (!created) {
       // Most likely another device started one (unique index); resync.
-      await this.loadSessions();
+      await this.loadSessions(true);
     }
     return created;
   }
@@ -112,7 +123,7 @@ export class SleepService {
       if (error) throw error;
 
       const session = this.mapRow(data as SleepSessionDb);
-      this.sessions.update(list => this.sort([...list, session]));
+      this.sessions.update((list) => this.sort([...list, session]));
       return session;
     } catch (error) {
       console.error('Error creating sleep session:', error);
@@ -134,7 +145,9 @@ export class SleepService {
 
       if (error) throw error;
 
-      this.sessions.update(list => this.sort(list.map(s => (s.id === id ? { ...input, id } : s))));
+      this.sessions.update((list) =>
+        this.sort(list.map((s) => (s.id === id ? { ...input, id } : s))),
+      );
       return true;
     } catch (error) {
       console.error('Error updating sleep session:', error);
@@ -156,7 +169,7 @@ export class SleepService {
 
       if (error) throw error;
 
-      this.sessions.update(list => list.filter(s => s.id !== id));
+      this.sessions.update((list) => list.filter((s) => s.id !== id));
       return true;
     } catch (error) {
       console.error('Error deleting sleep session:', error);
@@ -172,7 +185,7 @@ export class SleepService {
     const now = Date.now();
     const end = endAt ?? now;
     return this.sessions().find(
-      s => s.id !== excludeId && s.startAt < end && (s.endAt ?? now) > startAt
+      (s) => s.id !== excludeId && s.startAt < end && (s.endAt ?? now) > startAt,
     );
   }
 
@@ -180,7 +193,7 @@ export class SleepService {
   getSessionsForDay(dayStart: number, now: number = Date.now()): SleepSession[] {
     const dayEnd = this.nextDayStart(dayStart);
     return this.sessions()
-      .filter(s => s.startAt < dayEnd && (s.endAt ?? now) > dayStart)
+      .filter((s) => s.startAt < dayEnd && (s.endAt ?? now) > dayStart)
       .sort((a, b) => a.startAt - b.startAt);
   }
 
@@ -226,17 +239,13 @@ export class SleepService {
     return Date.now() - this.RECENT_WINDOW_DAYS * DAY_MS;
   }
 
-  getWindowDays(): number {
-    return this.RECENT_WINDOW_DAYS;
-  }
-
   private mapRow(row: SleepSessionDb): SleepSession {
     return {
       id: row.id,
       kind: row.kind === 'night' ? 'night' : 'nap',
       startAt: Date.parse(row.start_at),
       endAt: row.end_at ? Date.parse(row.end_at) : null,
-      note: row.note ?? undefined
+      note: row.note ?? undefined,
     };
   }
 
@@ -245,7 +254,7 @@ export class SleepService {
       kind: input.kind,
       start_at: new Date(input.startAt).toISOString(),
       end_at: input.endAt === null ? null : new Date(input.endAt).toISOString(),
-      note: input.note?.trim() || null
+      note: input.note?.trim() || null,
     };
   }
 

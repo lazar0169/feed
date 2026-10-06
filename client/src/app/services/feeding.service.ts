@@ -3,6 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { FeedingEntry } from '../models/feeding-entry.model';
 import { AuthService } from './auth.service';
+import { TableSync } from './table-sync';
 
 interface FeedingEntryDb extends FeedingEntry {
   user_id: string;
@@ -30,7 +31,7 @@ export class FeedingService {
   // Only the most recent window of entries is kept in memory. This keeps the
   // startup fetch (and every consumer that scans the whole list) bounded as
   // history grows. Older entries are fetched on demand by the Log page via
-  // fetchEntriesRange(). 90 days keeps the 7-day and 30-day stats exact.
+  // loadOlderEntries().
   private readonly RECENT_WINDOW_DAYS = 90;
 
   // Page size for on-demand paging of older (pre-window) history in the Log.
@@ -40,13 +41,24 @@ export class FeedingService {
   private readonly ENTRY_COLUMNS =
     'id, type, date, time, amount, name, spoons, comment, timestamp';
 
+  private sync: TableSync;
+
   constructor(private authService: AuthService) {
+    this.sync = new TableSync(
+      authService.getSupabaseClient(),
+      'feeding_entries',
+      () => this.loadEntries(true),
+      id => this.entriesSubject.value.some(e => e.id === id)
+    );
+
     // Modern Angular: Use effect to watch signal changes
     effect(() => {
       const user = this.authService.currentUser();
       if (user) {
         this.loadEntries();
+        this.sync.start(user.id);
       } else {
+        this.sync.stop();
         this.entriesSubject.next([]);
         this.isLoading.set(false);
       }
@@ -54,13 +66,14 @@ export class FeedingService {
   }
 
   /**
-   * Load all entries from Supabase for current user
+   * Load all entries from Supabase for current user. A silent load (live
+   * sync) leaves isLoading alone and keeps current entries on failure.
    */
-  private async loadEntries(): Promise<void> {
+  private async loadEntries(silent = false): Promise<void> {
     const user = this.authService.currentUser();
     if (!user) return;
 
-    this.isLoading.set(true);
+    if (!silent) this.isLoading.set(true);
 
     try {
       const supabase = this.authService.getSupabaseClient();
@@ -76,9 +89,9 @@ export class FeedingService {
       this.entriesSubject.next((data || []).map(entry => this.mapRow(entry as FeedingEntryDb)));
     } catch (error) {
       console.error('Error loading entries:', error);
-      this.entriesSubject.next([]);
+      if (!silent) this.entriesSubject.next([]);
     } finally {
-      this.isLoading.set(false);
+      if (!silent) this.isLoading.set(false);
     }
   }
 
@@ -132,33 +145,6 @@ export class FeedingService {
    */
   getAllEntries(): FeedingEntry[] {
     return this.entriesSubject.value;
-  }
-
-  /**
-   * Get entries for a specific date
-   */
-  getEntriesByDate(date: string): FeedingEntry[] {
-    return this.entriesSubject.value
-      .filter(entry => entry.date === date)
-      .sort((a, b) => {
-        // Sort by time (HH:MM) in descending order (latest time first)
-        return b.time.localeCompare(a.time);
-      });
-  }
-
-  /**
-   * Get entries for today
-   */
-  getTodayEntries(): FeedingEntry[] {
-    const today = this.getTodayDate();
-    return this.getEntriesByDate(today);
-  }
-
-  /**
-   * Get entry by ID
-   */
-  getEntryById(id: string): FeedingEntry | undefined {
-    return this.entriesSubject.value.find(entry => entry.id === id);
   }
 
   /**
@@ -296,46 +282,14 @@ export class FeedingService {
     }
   }
 
-  /**
-   * Get unique dates that have entries (sorted descending)
-   */
-  getUniqueDates(): string[] {
-    const dates = new Set(this.entriesSubject.value.map(entry => entry.date));
-    return Array.from(dates).sort((a, b) => b.localeCompare(a));
-  }
-
   /** Epoch-ms lower bound of the in-memory recent window. */
   getWindowStart(): number {
     return Date.now() - this.RECENT_WINDOW_DAYS * 24 * 60 * 60 * 1000;
   }
 
-  /** Recent-window lower bound as YYYY-MM-DD (for date-string filters). */
-  getWindowStartDate(): string {
-    return new Date(this.getWindowStart()).toISOString().split('T')[0];
-  }
-
-  /** Number of days the in-memory window (and window-scoped stats) cover. */
-  getWindowDays(): number {
-    return this.RECENT_WINDOW_DAYS;
-  }
-
   /** Re-fetch the recent window (e.g. after an edit crosses the boundary). */
   async reload(): Promise<void> {
     await this.loadEntries();
-  }
-
-  /**
-   * Helper: Generate unique ID
-   */
-  private generateId(): string {
-    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  /**
-   * Helper: Get today's date in YYYY-MM-DD format
-   */
-  private getTodayDate(): string {
-    return new Date().toISOString().split('T')[0];
   }
 
   /**

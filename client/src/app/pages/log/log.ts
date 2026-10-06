@@ -2,6 +2,8 @@ import { Component, OnInit, DestroyRef, computed, inject, signal } from '@angula
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FeedingService } from '../../services/feeding.service';
+import { SleepService } from '../../services/sleep.service';
+import { formatDuration } from '../../utils/duration';
 import { FeedingEntry } from '../../models/feeding-entry.model';
 import { FeedingForm } from '../../components/feeding-form/feeding-form';
 import { FeedingList } from '../../components/feeding-list/feeding-list';
@@ -22,9 +24,12 @@ interface DateGroup {
 })
 export class Log implements OnInit {
   private feedingService = inject(FeedingService);
+  private sleepService = inject(SleepService);
   private destroyRef = inject(DestroyRef);
 
   private readonly PAGE_SIZE = 100;
+
+  protected readonly formatDuration = formatDuration;
 
   // The recent window comes live from entries$; older history is paged in on
   // demand. The two are disjoint by timestamp (window is >= windowStart,
@@ -40,6 +45,18 @@ export class Log implements OnInit {
   protected dateGroups = computed<DateGroup[]>(() =>
     this.groupByDate([...this.recentEntries(), ...this.olderEntries()])
   );
+
+  /** Sleep per log day (ms); only days inside the sleep window have data. */
+  protected sleepByDate = computed(() => {
+    const totals = new Map<string, number>();
+    if (this.sleepService.sessions().length === 0) return totals;
+    for (const group of this.dateGroups()) {
+      const dayStart = new Date(`${group.date}T00:00:00`).getTime();
+      const totalMs = this.sleepService.getDaySummary(dayStart).totalMs;
+      if (totalMs > 0) totals.set(group.date, totalMs);
+    }
+    return totals;
+  });
 
   ngOnInit(): void {
     this.feedingService.entries$

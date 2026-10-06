@@ -57,6 +57,12 @@
                   {{ group.solidFeeds }} {{ group.solidFeeds === 1 ? 'solid' : 'solids' }}
                 </span>
               }
+              @if (sleepByDate().get(group.date); as sleepMs) {
+                <span class="stat-badge" title="Total sleep">
+                  <i class="fas fa-moon"></i>
+                  {{ formatDuration(sleepMs) }}
+                </span>
+              }
             </div>
           </div>
         </div>

@@ -21,6 +21,8 @@ export class Settings implements OnInit {
   protected intervalEnabled = signal<boolean>(false);
   protected intervalHours = signal<number>(3);
   protected notificationsToggleEnabled = signal<boolean>(false);
+  protected wakeWindowEnabled = signal<boolean>(false);
+  protected wakeWindowMinutes = signal<number>(120);
   protected isSaving = signal<boolean>(false);
   protected saveMessage = signal<string>('');
 
@@ -51,6 +53,10 @@ export class Settings implements OnInit {
         // Initialize notifications toggle
         this.notificationsToggleEnabled.set(this.settingsService.areNotificationsEnabled());
 
+        const wakeWindow = this.settingsService.getWakeWindowMinutes();
+        this.wakeWindowEnabled.set(wakeWindow !== null);
+        if (wakeWindow !== null) this.wakeWindowMinutes.set(wakeWindow);
+
         // Settings loaded, hide loading indicator
         this.isLoading.set(false);
       }
@@ -72,17 +78,22 @@ export class Settings implements OnInit {
     const intervalValue = this.intervalEnabled() ? this.intervalHours() : null;
     const intervalSuccess = await this.settingsService.updateFeedingInterval(intervalValue);
     const notificationsSuccess = await this.settingsService.updateNotificationsEnabled(this.notificationsToggleEnabled());
+    const wakeValue = this.wakeWindowEnabled() ? this.wakeWindowMinutes() : null;
+    const wakeSuccess =
+      wakeValue === this.settingsService.getWakeWindowMinutes() ||
+      (await this.settingsService.updateWakeWindow(wakeValue));
 
     this.isSaving.set(false);
 
-    if (!intervalSuccess || !notificationsSuccess) {
+    if (!intervalSuccess || !notificationsSuccess || !wakeSuccess) {
       this.saveMessage.set('Failed to save settings. Please try again.');
       setTimeout(() => this.saveMessage.set(''), 5000);
       return;
     }
 
     // Request notification permission if enabling notifications
-    if (this.intervalEnabled() && this.notificationsToggleEnabled() && this.notificationsSupported()) {
+    const wantsReminders = this.intervalEnabled() || this.wakeWindowEnabled();
+    if (wantsReminders && this.notificationsToggleEnabled() && this.notificationsSupported()) {
       const hasPermission = await this.notificationService.requestPermission();
       this.notificationPermission.set(Notification.permission);
 
@@ -107,6 +118,10 @@ export class Settings implements OnInit {
     if (hours < 0.5) hours = 0.5;
     if (hours > 24) hours = 24;
     this.intervalHours.set(hours);
+  }
+
+  protected onWakeWindowChange(minutes: number): void {
+    this.wakeWindowMinutes.set(Math.min(600, Math.max(15, Math.round(minutes) || 15)));
   }
 
   protected onToggleNotifications(enabled: boolean): void {

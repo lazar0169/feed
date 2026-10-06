@@ -6,7 +6,8 @@
       <div class="status-text">
         @if (activeSession(); as active) {
           <span class="status-label">
-            {{ active.kind === 'night' ? 'Night sleep' : 'Napping' }} since {{ formatClock(active.startAt) }}
+            {{ active.kind === 'night' ? 'Night sleep' : 'Napping' }} since
+            {{ formatClock(active.startAt) }}
           </span>
           <span class="status-value">{{ formatDuration(statusMs() ?? 0) }}</span>
         } @else if (statusMs() !== null) {
@@ -50,7 +51,12 @@
     </div>
 
     <div class="day-nav">
-      <button class="btn-icon" [disabled]="!canGoBack()" (click)="previousDay()" aria-label="Previous day">
+      <button
+        class="btn-icon"
+        [disabled]="!canGoBack()"
+        (click)="previousDay()"
+        aria-label="Previous day"
+      >
         <i class="fas fa-chevron-left"></i>
       </button>
       <span class="day-label">{{ dayLabel() }}</span>
@@ -86,7 +92,11 @@
       <div class="modal-content" (click)="$event.stopPropagation()">
         <div class="modal-header">
           <h3>
-            <i class="fas" [class.fa-pen]="editingSession()" [class.fa-plus-circle]="!editingSession()"></i>
+            <i
+              class="fas"
+              [class.fa-pen]="editingSession()"
+              [class.fa-plus-circle]="!editingSession()"
+            ></i>
             {{ editingSession() ? 'Edit' : 'Add' }} Sleep
           </h3>
           <button class="btn-close" (click)="closeFormModal()">
@@ -119,7 +129,11 @@
 
     @for (row of rows(); track row.session.id) {
       <article class="sleep-entry" [class.ongoing]="row.session.endAt === null">
-        <i class="fas kind-icon" [class.fa-moon]="row.session.kind === 'night'" [class.fa-sun]="row.session.kind === 'nap'"></i>
+        <i
+          class="fas kind-icon"
+          [class.fa-moon]="row.session.kind === 'night'"
+          [class.fa-sun]="row.session.kind === 'nap'"
+        ></i>
         <div class="entry-main">
           <span class="entry-range">
             {{ formatEdge(row.session.startAt) }} –
@@ -136,7 +150,11 @@
           <button class="btn-icon" (click)="onEdit(row.session)" aria-label="Edit">
             <i class="fas fa-pen"></i>
           </button>
-          <button class="btn-icon btn-delete" (click)="onDelete(row.session.id)" aria-label="Delete">
+          <button
+            class="btn-icon btn-delete"
+            (click)="onDelete(row.session.id)"
+            aria-label="Delete"
+          >
             <i class="fas fa-trash-alt"></i>
           </button>
         </div>

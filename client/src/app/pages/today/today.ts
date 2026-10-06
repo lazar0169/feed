@@ -1,17 +1,20 @@
 import { Component, OnInit, signal, computed, DestroyRef, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { interval } from 'rxjs';
 import { FeedingService } from '../../services/feeding.service';
 import { NotificationService } from '../../services/notification.service';
 import { SettingsService } from '../../services/settings.service';
+import { SleepService } from '../../services/sleep.service';
+import { formatDuration } from '../../utils/duration';
 import { FeedingEntry, FeedingType } from '../../models/feeding-entry.model';
 import { FeedingForm } from '../../components/feeding-form/feeding-form';
 import { FeedingList } from '../../components/feeding-list/feeding-list';
 
 @Component({
   selector: 'app-today',
-  imports: [CommonModule, FeedingForm, FeedingList],
+  imports: [CommonModule, RouterLink, FeedingForm, FeedingList],
   templateUrl: './today.html',
   styleUrl: './today.scss',
 })
@@ -19,6 +22,7 @@ export class Today implements OnInit {
   private feedingService = inject(FeedingService);
   private notificationService = inject(NotificationService);
   private settingsService = inject(SettingsService);
+  private sleepService = inject(SleepService);
   private destroyRef = inject(DestroyRef);
 
   // Modern Angular signals for reactive state
@@ -34,6 +38,15 @@ export class Today implements OnInit {
       .sort((a, b) => b.time.localeCompare(a.time))
   );
   protected nextFeedCountdown = signal<string | null>(null);
+
+  private now = signal(Date.now());
+  protected activeSleep = this.sleepService.activeSession;
+  protected sleepChipLabel = computed(() => {
+    const active = this.activeSleep();
+    if (!active) return null;
+    const label = active.kind === 'night' ? 'Night sleep' : 'Napping';
+    return `${label} for ${formatDuration(this.now() - active.startAt)}`;
+  });
   protected showFormModal = signal<boolean>(false);
   protected showTypeSelector = signal<boolean>(false);
   protected selectedFeedingType = signal<FeedingType | null>(null);
@@ -125,6 +138,7 @@ export class Today implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         this.updateCountdown();
+        this.now.set(Date.now());
       });
   }
 

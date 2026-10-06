@@ -2,6 +2,8 @@ import { Injectable, inject, effect } from '@angular/core';
 import { FeedingService } from './feeding.service';
 import { SettingsService } from './settings.service';
 import { AuthService } from './auth.service';
+import { SleepService } from './sleep.service';
+import { formatDuration } from '../utils/duration';
 
 @Injectable({
   providedIn: 'root'
@@ -10,8 +12,10 @@ export class NotificationService {
   private feedingService = inject(FeedingService);
   private settingsService = inject(SettingsService);
   private authService = inject(AuthService);
+  private sleepService = inject(SleepService);
 
   private nextFeedingTimer: any = null;
+  private wakeWindowTimer: ReturnType<typeof setTimeout> | null = null;
   private notificationPermission: NotificationPermission = 'default';
   private lastNotificationTime: number | null = null; // Track when we last sent a notification
 
@@ -25,10 +29,23 @@ export class NotificationService {
     effect(() => {
       const user = this.authService.currentUser();
       const settings = this.settingsService.settings();
-      const entries = this.feedingService.getAllEntries();
+      // Must read the signal (not getAllEntries()) so a new feed reschedules.
+      this.feedingService.entries();
 
       if (user && settings) {
         this.scheduleNextNotification();
+      }
+    });
+
+    effect(() => {
+      const user = this.authService.currentUser();
+      const settings = this.settingsService.settings();
+      this.sleepService.sessions();
+
+      if (user && settings) {
+        this.scheduleWakeWindowNotification();
+      } else {
+        this.clearWakeWindowTimer();
       }
     });
   }
@@ -118,6 +135,59 @@ export class NotificationService {
       if (this.lastNotificationTime === null || this.lastNotificationTime < nextFeedingTime) {
         this.showNotification(nextFeedingTime);
       }
+    }
+  }
+
+  /**
+   * Notify once the baby has been awake for the configured wake window.
+   * Only future reminders are scheduled: one that is already past when the
+   * app opens is stale, unlike an overdue feed.
+   */
+  private scheduleWakeWindowNotification(): void {
+    this.clearWakeWindowTimer();
+
+    const minutes = this.settingsService.getWakeWindowMinutes();
+    const lastWakeAt = this.sleepService.getLastWakeAt();
+    if (minutes === null || lastWakeAt === null || !this.canNotify()) return;
+
+    const delay = lastWakeAt + minutes * 60 * 1000 - Date.now();
+    if (delay <= 0) return;
+
+    this.wakeWindowTimer = setTimeout(() => {
+      this.wakeWindowTimer = null;
+      if (!this.canNotify() || this.sleepService.activeSession()) return;
+      this.show('😴 Wake Window', {
+        body: `Awake for ${formatDuration(minutes * 60 * 1000)}. Watch for sleepy cues.`,
+        tag: 'wake-window-reminder',
+      });
+    }, delay);
+  }
+
+  private clearWakeWindowTimer(): void {
+    if (this.wakeWindowTimer) {
+      clearTimeout(this.wakeWindowTimer);
+      this.wakeWindowTimer = null;
+    }
+  }
+
+  /** Permission granted and the notifications toggle is on. */
+  private canNotify(): boolean {
+    return (
+      'Notification' in window &&
+      this.notificationPermission === 'granted' &&
+      this.settingsService.areNotificationsEnabled()
+    );
+  }
+
+  private show(title: string, options: NotificationOptions): void {
+    try {
+      const notification = new Notification(title, { icon: '/favicon.ico', ...options });
+      notification.onclick = () => {
+        window.focus();
+        notification.close();
+      };
+    } catch (error) {
+      console.error('Error showing notification:', error);
     }
   }
 
@@ -224,5 +294,6 @@ export class NotificationService {
     if (this.nextFeedingTimer) {
       clearTimeout(this.nextFeedingTimer);
     }
+    this.clearWakeWindowTimer();
   }
 }
