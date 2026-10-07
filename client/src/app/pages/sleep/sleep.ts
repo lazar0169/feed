@@ -1,30 +1,33 @@
-import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { interval } from 'rxjs';
 import { SleepService } from '../../services/sleep.service';
+import { AuthService } from '../../services/auth.service';
 import { SleepKind, SleepSession, SleepSessionInput } from '../../models/sleep-session.model';
 import { SleepForm } from '../../components/sleep-form/sleep-form';
+import { SleepEvent } from '../../components/sleep-event/sleep-event';
 import { formatDuration } from '../../utils/duration';
-
-/** A session in the day list, with the awake gap that preceded it. */
-interface SleepRow {
-  session: SleepSession;
-  wakeBeforeMs: number | null;
-}
+import { buildTimeline } from '../../utils/timeline';
+import { formatDateBadge, formatDayLabel, localMidnightDaysAgo } from '../../utils/day-label';
 
 @Component({
   selector: 'app-sleep',
-  imports: [SleepForm],
+  imports: [SleepForm, SleepEvent],
   templateUrl: './sleep.html',
   styleUrl: './sleep.scss',
 })
 export class Sleep implements OnInit {
   private sleepService = inject(SleepService);
+  private authService = inject(AuthService);
   private destroyRef = inject(DestroyRef);
 
-  // Ticks so live durations (asleep for / awake for) stay fresh.
+  protected readonly PAGE_DAYS = 30;
+  protected readonly formatDuration = formatDuration;
+  protected readonly formatDate = formatDayLabel;
+  protected readonly formatDateBadge = formatDateBadge;
+
+  // Ticks so live durations (asleep for / awake for, day totals) stay fresh.
   protected now = signal(Date.now());
-  protected selectedDay = signal(this.sleepService.startOfDay(Date.now()));
 
   protected isLoading = this.sleepService.isLoading;
   protected activeSession = this.sleepService.activeSession;
@@ -35,29 +38,27 @@ export class Sleep implements OnInit {
   protected editingSession = signal<SleepSession | undefined>(undefined);
   protected formError = signal<string | null>(null);
 
-  protected isToday = computed(
-    () => this.selectedDay() === this.sleepService.startOfDay(this.now()),
-  );
-  protected canGoBack = computed(
-    () => this.selectedDay() > this.sleepService.startOfDay(this.sleepService.getWindowStart()),
+  // Events before this are hidden; "Load older" moves it back PAGE_DAYS.
+  // Starts inside the service's in-memory window, so nothing is fetched
+  // until the user asks for older history.
+  private historyStart = signal(localMidnightDaysAgo(this.PAGE_DAYS - 1));
+
+  // Sessions older than the service's window. Live sessions are passed to the
+  // timeline first, so they win if a session is in both.
+  private olderSleeps = signal<SleepSession[]>([]);
+  private earliestAt = signal<number | null>(null);
+  protected loadingOlder = signal(false);
+
+  protected days = computed(() =>
+    buildTimeline([], [...this.sleepService.sessions(), ...this.olderSleeps()], {
+      since: this.historyStart(),
+      now: this.now(),
+    }),
   );
 
-  protected summary = computed(() =>
-    this.sleepService.getDaySummary(this.selectedDay(), this.now()),
-  );
-
-  /** Newest first, each with the awake time since the previous session ended. */
-  protected rows = computed<SleepRow[]>(() => {
-    const sessions = this.sleepService.getSessionsForDay(this.selectedDay(), this.now());
-    return sessions
-      .map((session, i) => {
-        const prevEnd = i > 0 ? sessions[i - 1].endAt : null;
-        return {
-          session,
-          wakeBeforeMs: prevEnd !== null ? Math.max(0, session.startAt - prevEnd) : null,
-        };
-      })
-      .reverse();
+  protected hasMoreOlder = computed(() => {
+    const earliest = this.earliestAt();
+    return earliest !== null && earliest < this.historyStart();
   });
 
   /** Live "asleep for" / "awake for" duration; null when there's no history. */
@@ -75,6 +76,12 @@ export class Sleep implements OnInit {
     const active = this.activeSession();
     return !active || active.id === this.editingSession()?.id;
   });
+
+  constructor() {
+    effect(() => {
+      if (this.authService.currentUser()) this.loadEarliest();
+    });
+  }
 
   ngOnInit(): void {
     interval(30000)
@@ -98,16 +105,23 @@ export class Sleep implements OnInit {
     }
   }
 
-  protected previousDay(): void {
-    if (!this.canGoBack()) return;
-    const d = new Date(this.selectedDay());
-    d.setDate(d.getDate() - 1);
-    this.selectedDay.set(d.getTime());
-  }
+  protected async loadOlder(): Promise<void> {
+    if (this.loadingOlder()) return;
+    this.loadingOlder.set(true);
 
-  protected nextDay(): void {
-    if (this.isToday()) return;
-    this.selectedDay.set(this.sleepService.nextDayStart(this.selectedDay()));
+    const to = this.historyStart();
+    const fromDate = new Date(to);
+    fromDate.setDate(fromDate.getDate() - this.PAGE_DAYS);
+    const from = fromDate.getTime();
+
+    // Only fetch what the service doesn't already hold in memory.
+    const sleeps = await this.sleepService.loadSessionsRange(
+      from,
+      Math.min(to, this.sleepService.getWindowStart()),
+    );
+    this.olderSleeps.update((list) => [...list, ...sleeps]);
+    this.historyStart.set(from);
+    this.loadingOlder.set(false);
   }
 
   protected openAdd(): void {
@@ -130,12 +144,16 @@ export class Sleep implements OnInit {
 
   protected async onSubmit(input: SleepSessionInput): Promise<void> {
     const editing = this.editingSession();
-    const overlap = this.sleepService.findOverlap(input.startAt, input.endAt, editing?.id);
+    const overlap = this.sleepService.findOverlap(
+      input.startAt,
+      input.endAt,
+      editing?.id,
+      this.olderSleeps(),
+    );
     if (overlap) {
       const end = overlap.endAt !== null ? this.formatClock(overlap.endAt) : 'now';
-      this.formError.set(
-        `Overlaps with ${overlap.kind === 'night' ? 'night sleep' : 'nap'} ${this.formatClock(overlap.startAt)}–${end}.`,
-      );
+      const what = overlap.kind === 'night' ? 'night sleep' : 'nap';
+      this.formError.set(`Overlaps with ${what} ${this.formatClock(overlap.startAt)}–${end}.`);
       return;
     }
 
@@ -143,44 +161,32 @@ export class Sleep implements OnInit {
       ? await this.sleepService.updateSession(editing.id, input)
       : !!(await this.sleepService.createSession(input));
 
-    if (ok) {
-      this.closeFormModal();
-      this.now.set(Date.now());
-    } else {
+    if (!ok) {
       this.formError.set("Couldn't save. Please try again.");
+      return;
     }
+    if (editing) {
+      this.olderSleeps.update((list) =>
+        list.map((s) => (s.id === editing.id ? { ...input, id: editing.id } : s)),
+      );
+    }
+    this.closeFormModal();
+    this.now.set(Date.now());
   }
 
+  /** SleepEvent has already asked for confirmation. */
   protected async onDelete(id: string): Promise<void> {
-    if (!confirm('Are you sure you want to delete this sleep?')) return;
     await this.sleepService.deleteSession(id);
+    this.olderSleeps.update((list) => list.filter((s) => s.id !== id));
   }
-
-  protected readonly formatDuration = formatDuration;
 
   protected formatClock(ms: number): string {
     const d = new Date(ms);
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   }
 
-  /** Clock time, prefixed with the weekday when it falls outside the selected day. */
-  protected formatEdge(ms: number): string {
-    const day = this.selectedDay();
-    if (ms >= day && ms < this.sleepService.nextDayStart(day)) return this.formatClock(ms);
-    const weekday = new Date(ms).toLocaleDateString(undefined, { weekday: 'short' });
-    return `${weekday} ${this.formatClock(ms)}`;
-  }
-
-  protected dayLabel(): string {
-    if (this.isToday()) return 'Today';
-    const yesterday = new Date(this.sleepService.startOfDay(this.now()));
-    yesterday.setDate(yesterday.getDate() - 1);
-    if (this.selectedDay() === yesterday.getTime()) return 'Yesterday';
-    return new Date(this.selectedDay()).toLocaleDateString(undefined, {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-    });
+  private async loadEarliest(): Promise<void> {
+    this.earliestAt.set(await this.sleepService.getEarliestStart());
   }
 
   /** Evenings and early mornings default to night sleep. */

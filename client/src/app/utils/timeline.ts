@@ -1,28 +1,33 @@
 import { FeedingEntry } from '../models/feeding-entry.model';
 import { SleepSession } from '../models/sleep-session.model';
 
-export type LogFilter = 'all' | 'feeds' | 'sleep';
-
 /**
- * One row in the Log. A sleep session becomes two events so night feeds
- * land between them and a session crossing midnight splits naturally.
+ * One row in a day list. A sleep session becomes two events so a session
+ * crossing midnight splits naturally across days.
  */
 export type TimelineItem =
   | { kind: 'feed'; key: string; at: number; entry: FeedingEntry }
-  | { kind: 'sleep-start' | 'sleep-end'; key: string; at: number; session: SleepSession };
+  | {
+      kind: 'sleep-start';
+      key: string;
+      at: number;
+      session: SleepSession;
+      awakeBeforeMs: number | null; // since the previous session ended
+    }
+  | { kind: 'sleep-end'; key: string; at: number; session: SleepSession };
 
 export interface TimelineDay {
   date: string; // YYYY-MM-DD, local
-  items: TimelineItem[]; // newest first, after filtering
+  items: TimelineItem[]; // newest first
   milkMl: number;
   solidFeeds: number;
-  sleepMs: number; // asleep time clipped to this day
+  sleepMs: number; // whole sessions belonging to this day, see sleepDayKey
+  naps: number;
 }
 
 export interface TimelineOptions {
   since: number; // events before this are dropped
   now: number; // end of in-progress sessions
-  filter: LogFilter;
 }
 
 /** Local YYYY-MM-DD, matching how feeding entries store `date`. */
@@ -32,20 +37,32 @@ export function localDateKey(ms: number): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+/**
+ * The day a session's sleep counts toward. A night started after noon belongs
+ * to the next morning, so a night split by wakings before midnight stays whole.
+ */
+export function sleepDayKey(session: SleepSession): string {
+  const start = new Date(session.startAt);
+  if (session.kind === 'night' && start.getHours() >= 12) {
+    start.setDate(start.getDate() + 1);
+  }
+  return localDateKey(start.getTime());
+}
+
 /** Duplicates (same id) keep the first occurrence, so pass live data first. */
 export function buildTimeline(
   feeds: FeedingEntry[],
   sessions: SleepSession[],
-  { since, now, filter }: TimelineOptions,
+  { since, now }: TimelineOptions,
 ): TimelineDay[] {
   const uniqueFeeds = dedupe(feeds).filter((f) => f.timestamp >= since);
-  const uniqueSessions = dedupe(sessions);
+  const uniqueSessions = dedupe(sessions).sort((a, b) => a.startAt - b.startAt);
 
   const days = new Map<string, TimelineDay>();
   const day = (date: string) => {
     let d = days.get(date);
     if (!d) {
-      d = { date, items: [], milkMl: 0, solidFeeds: 0, sleepMs: 0 };
+      d = { date, items: [], milkMl: 0, solidFeeds: 0, sleepMs: 0, naps: 0 };
       days.set(date, d);
     }
     return d;
@@ -55,14 +72,19 @@ export function buildTimeline(
     const d = day(entry.date);
     if (entry.type === 'solid') d.solidFeeds++;
     else d.milkMl += entry.amount || 0;
-    if (filter !== 'sleep') {
-      d.items.push({ kind: 'feed', key: `feed:${entry.id}`, at: entry.timestamp, entry });
-    }
+    d.items.push({ kind: 'feed', key: `feed:${entry.id}`, at: entry.timestamp, entry });
   }
 
-  for (const session of uniqueSessions) {
+  uniqueSessions.forEach((session, i) => {
+    const prevEnd = i > 0 ? uniqueSessions[i - 1].endAt : null;
     const events: TimelineItem[] = [
-      { kind: 'sleep-start', key: `sleep:${session.id}:start`, at: session.startAt, session },
+      {
+        kind: 'sleep-start',
+        key: `sleep:${session.id}:start`,
+        at: session.startAt,
+        session,
+        awakeBeforeMs: prevEnd !== null ? Math.max(0, session.startAt - prevEnd) : null,
+      },
     ];
     if (session.endAt !== null) {
       events.push({
@@ -73,32 +95,22 @@ export function buildTimeline(
       });
     }
     for (const event of events) {
-      if (event.at < since) continue;
-      const d = day(localDateKey(event.at));
-      if (filter !== 'feeds') d.items.push(event);
+      if (event.at >= since) day(localDateKey(event.at)).items.push(event);
     }
-  }
+  });
 
-  for (const d of days.values()) {
-    d.sleepMs = sleepWithinDay(uniqueSessions, d.date, now);
+  // Totals only land on days that already have rows; an empty group for a
+  // night still in progress past midnight would look broken.
+  for (const session of uniqueSessions) {
+    const d = days.get(sleepDayKey(session));
+    if (!d) continue;
+    d.sleepMs += (session.endAt ?? now) - session.startAt;
+    if (session.kind === 'nap') d.naps++;
   }
 
   return Array.from(days.values())
-    .filter((d) => d.items.length > 0)
     .sort((a, b) => b.date.localeCompare(a.date))
     .map((d) => ({ ...d, items: d.items.sort((a, b) => b.at - a.at) }));
-}
-
-function sleepWithinDay(sessions: SleepSession[], date: string, now: number): number {
-  const start = new Date(`${date}T00:00:00`);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1); // DST-safe, unlike + 24h
-  let total = 0;
-  for (const s of sessions) {
-    const overlap = Math.min(s.endAt ?? now, end.getTime()) - Math.max(s.startAt, start.getTime());
-    if (overlap > 0) total += overlap;
-  }
-  return total;
 }
 
 function dedupe<T extends { id: string }>(rows: T[]): T[] {

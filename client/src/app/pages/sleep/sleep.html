@@ -49,36 +49,6 @@
         }
       </button>
     </div>
-
-    <div class="day-nav">
-      <button
-        class="btn-icon"
-        [disabled]="!canGoBack()"
-        (click)="previousDay()"
-        aria-label="Previous day"
-      >
-        <i class="fas fa-chevron-left"></i>
-      </button>
-      <span class="day-label">{{ dayLabel() }}</span>
-      <button class="btn-icon" [disabled]="isToday()" (click)="nextDay()" aria-label="Next day">
-        <i class="fas fa-chevron-right"></i>
-      </button>
-    </div>
-
-    <div class="sleep-stats">
-      <div class="stat">
-        <span class="stat-label">Total</span>
-        <span class="stat-value">{{ formatDuration(summary().totalMs) }}</span>
-      </div>
-      <div class="stat">
-        <span class="stat-label">Naps</span>
-        <span class="stat-value">{{ summary().naps }}</span>
-      </div>
-      <div class="stat">
-        <span class="stat-label">Longest</span>
-        <span class="stat-value">{{ formatDuration(summary().longestMs) }}</span>
-      </div>
-    </div>
   </div>
 
   @if (!showFormModal()) {
@@ -119,52 +89,73 @@
   <div class="list-section">
     @if (isLoading()) {
       <div class="empty-state"><p>Loading…</p></div>
-    } @else if (rows().length === 0) {
+    } @else if (days().length === 0) {
       <div class="empty-state">
         <i class="fas fa-bed"></i>
-        <p>No sleep logged {{ isToday() ? 'today' : 'this day' }}</p>
+        <p>No sleep in the last {{ PAGE_DAYS }} days.</p>
         <small>Tap “Fell asleep” to start a timer, or + to add one.</small>
       </div>
     }
 
-    @for (row of rows(); track row.session.id) {
-      <article class="sleep-entry" [class.ongoing]="row.session.endAt === null">
-        <i
-          class="fas kind-icon"
-          [class.fa-moon]="row.session.kind === 'night'"
-          [class.fa-sun]="row.session.kind === 'nap'"
-        ></i>
-        <div class="entry-main">
-          <span class="entry-range">
-            {{ formatEdge(row.session.startAt) }} –
-            {{ row.session.endAt !== null ? formatEdge(row.session.endAt) : 'now' }}
-          </span>
-          @if (row.session.note) {
-            <span class="entry-note">{{ row.session.note }}</span>
-          }
-        </div>
-        <span class="entry-duration">
-          {{ formatDuration((row.session.endAt ?? now()) - row.session.startAt) }}
-        </span>
-        <div class="entry-actions">
-          <button class="btn-icon" (click)="onEdit(row.session)" aria-label="Edit">
-            <i class="fas fa-pen"></i>
-          </button>
-          <button
-            class="btn-icon btn-delete"
-            (click)="onDelete(row.session.id)"
-            aria-label="Delete"
-          >
-            <i class="fas fa-trash-alt"></i>
-          </button>
-        </div>
-      </article>
-      @if (row.wakeBeforeMs !== null) {
-        <div class="wake-gap">
-          <i class="fas fa-eye"></i>
-          <span>Awake {{ formatDuration(row.wakeBeforeMs) }}</span>
+    <div class="day-list">
+      @for (day of days(); track day.date) {
+        <div class="date-group">
+          <div class="date-header">
+            <div class="date-header-row">
+              <i class="fas fa-calendar"></i>
+              <h3>{{ formatDate(day.date) }}</h3>
+            </div>
+            <div class="date-header-row date-header-bottom">
+              <span class="date-badge">{{ formatDateBadge(day.date) }}</span>
+              <div class="date-header-stats">
+                <span class="stat-badge" title="Total sleep, including the night before">
+                  <i class="fas fa-moon"></i>
+                  {{ formatDuration(day.sleepMs) }}
+                </span>
+                @if (day.naps > 0) {
+                  <span class="stat-badge" title="Naps">
+                    <i class="fas fa-sun"></i>
+                    {{ day.naps }} {{ day.naps === 1 ? 'nap' : 'naps' }}
+                  </span>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="day-items">
+            @for (item of day.items; track item.key) {
+              @if (item.kind !== 'feed') {
+                <app-sleep-event
+                  [session]="item.session"
+                  [kind]="item.kind"
+                  (editSession)="onEdit($event)"
+                  (deleteSession)="onDelete($event)"
+                ></app-sleep-event>
+              }
+              @if (item.kind === 'sleep-start' && item.awakeBeforeMs !== null) {
+                <div class="wake-gap">
+                  <i class="fas fa-eye"></i>
+                  <span>Awake {{ formatDuration(item.awakeBeforeMs) }}</span>
+                </div>
+              }
+            }
+          </div>
         </div>
       }
+    </div>
+
+    @if (hasMoreOlder()) {
+      <div class="load-more">
+        <button class="btn-load-more" (click)="loadOlder()" [disabled]="loadingOlder()">
+          <i
+            class="fas"
+            [class.fa-chevron-down]="!loadingOlder()"
+            [class.fa-spinner]="loadingOlder()"
+            [class.fa-spin]="loadingOlder()"
+          ></i>
+          <span>{{ loadingOlder() ? 'Loading…' : 'Load ' + PAGE_DAYS + ' more days' }}</span>
+        </button>
+      </div>
     }
   </div>
 </div>

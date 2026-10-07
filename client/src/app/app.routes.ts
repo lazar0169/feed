@@ -25,10 +25,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
-    path: 'log',
-    loadComponent: () => import('./pages/log/log').then((m) => m.Log),
+    path: 'feed',
+    loadComponent: () => import('./pages/feed/feed').then((m) => m.Feed),
     canActivate: [authGuard],
   },
+  // Old name; keeps installed-PWA bookmarks working.
+  { path: 'log', redirectTo: '/feed', pathMatch: 'full' },
   {
     path: 'sleep',
     loadComponent: () => import('./pages/sleep/sleep').then((m) => m.Sleep),

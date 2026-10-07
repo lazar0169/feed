@@ -46,16 +46,33 @@ describe('SleepForm', () => {
     expect(form.rangeError).toBe('Start time is in the future.');
   });
 
-  it('allows an empty end only when no other session is running', () => {
+  it('requires a wake-up time unless marked still asleep', () => {
     form.sleepForm.patchValue({ end: '' });
     expect(form.rangeError).toBe('Add a wake-up time.');
 
     fixture.componentRef.setInput('allowOpenEnd', true);
-    fixture.detectChanges();
+    form.sleepForm.patchValue({ stillAsleep: true });
     expect(form.sleepForm.valid).toBe(true);
   });
 
-  it('prefills an in-progress session with an empty end', () => {
+  it('rejects still asleep while another session is running', () => {
+    form.sleepForm.patchValue({ stillAsleep: true });
+    expect(form.rangeError).toBe('Another sleep is already in progress.');
+  });
+
+  it('emits an open end when still asleep, ignoring the end field', () => {
+    const emitted: SleepSessionInput[] = [];
+    form.submitForm.subscribe((v) => emitted.push(v));
+    fixture.componentRef.setInput('allowOpenEnd', true);
+    fixture.detectChanges();
+
+    form.sleepForm.patchValue({ stillAsleep: true });
+    form.onSubmit();
+
+    expect(emitted[0].endAt).toBeNull();
+  });
+
+  it('opens an in-progress session with still asleep on and the end empty', () => {
     fixture.componentRef.setInput('allowOpenEnd', true);
     fixture.componentRef.setInput('session', {
       id: 's',
@@ -69,8 +86,16 @@ describe('SleepForm', () => {
     expect(form.sleepForm.value).toMatchObject({
       kind: 'night',
       start: '2026-10-06T01:15',
+      stillAsleep: true,
       end: '',
     });
     expect(form.sleepForm.valid).toBe(true);
+    expect(fixture.nativeElement.querySelector('#sleep-end')).toBeNull();
+  });
+
+  it('fills the wake-up with now when still asleep is turned off', () => {
+    form.sleepForm.patchValue({ stillAsleep: false, end: '' });
+    form.onStillAsleepChange();
+    expect(form.sleepForm.value.end).toBe('2026-10-06T12:00');
   });
 });

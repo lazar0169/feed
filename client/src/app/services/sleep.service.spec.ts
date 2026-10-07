@@ -7,7 +7,6 @@ import { SleepSession } from '../models/sleep-session.model';
 
 const at = (day: number, hour: number, minute = 0) =>
   new Date(2026, 9, day, hour, minute).getTime();
-const HOUR = 60 * 60 * 1000;
 
 /** Chainable stand-in for a Supabase query: awaiting it yields `listResult`, .single() yields `singleResult`. */
 function fakeQuery(listResult: unknown, singleResult: unknown) {
@@ -40,24 +39,6 @@ describe('SleepService', () => {
       ],
     });
     service = TestBed.inject(SleepService);
-  });
-
-  describe('getDaySummary', () => {
-    it('clips sessions that cross midnight to the requested day', () => {
-      service.sessions.set([nap, night]);
-
-      const today = service.getDaySummary(at(6, 0), at(6, 20));
-      expect(today.totalMs).toBe(6 * HOUR + 1.5 * HOUR);
-      expect(today.naps).toBe(1);
-      expect(today.longestMs).toBe(9 * HOUR);
-
-      expect(service.getDaySummary(at(5, 0), at(6, 20)).totalMs).toBe(3 * HOUR);
-    });
-
-    it('counts an in-progress session up to now', () => {
-      service.sessions.set([{ id: 'x', kind: 'nap', startAt: at(6, 13), endAt: null }]);
-      expect(service.getDaySummary(at(6, 0), at(6, 13, 45)).totalMs).toBe(0.75 * HOUR);
-    });
   });
 
   describe('findOverlap', () => {

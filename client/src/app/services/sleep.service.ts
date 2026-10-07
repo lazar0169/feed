@@ -12,13 +12,6 @@ interface SleepSessionDb {
   note: string | null;
 }
 
-/** Aggregated sleep for one local calendar day. */
-export interface SleepDaySummary {
-  totalMs: number; // asleep time clipped to the day
-  naps: number;
-  longestMs: number; // longest single session that touches the day
-}
-
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 @Injectable({
@@ -35,7 +28,7 @@ export class SleepService {
   /** The in-progress session, if the baby is currently asleep. */
   readonly activeSession = computed(() => this.sessions().find((s) => s.endAt === null) ?? null);
 
-  // Only recent history is kept in memory; enough for the day navigator.
+  // Only recent history is kept in memory; the Sleep page fetches older on demand.
   private readonly RECENT_WINDOW_DAYS = 30;
 
   private readonly COLUMNS = 'id, kind, start_at, end_at, note';
@@ -178,7 +171,7 @@ export class SleepService {
   }
 
   /**
-   * Fetch sessions overlapping [from, to) for the Log's history (a night that
+   * Fetch sessions overlapping [from, to) for the Sleep page's history (a night that
    * started before `from` still has its wake-up inside). Not added to
    * `sessions`. Returns [] on error.
    */
@@ -225,7 +218,7 @@ export class SleepService {
   /**
    * First loaded session overlapping [startAt, endAt) — an open end counts as
    * "until now". Used to reject double-logged sleep before writing; `extra`
-   * covers sessions held outside the window (the Log's older history).
+   * covers sessions held outside the window (the Sleep page's older history).
    */
   findOverlap(
     startAt: number,
@@ -240,28 +233,6 @@ export class SleepService {
     );
   }
 
-  /** Sessions touching the local day starting at `dayStart`, oldest first. */
-  getSessionsForDay(dayStart: number, now: number = Date.now()): SleepSession[] {
-    const dayEnd = this.nextDayStart(dayStart);
-    return this.sessions()
-      .filter((s) => s.startAt < dayEnd && (s.endAt ?? now) > dayStart)
-      .sort((a, b) => a.startAt - b.startAt);
-  }
-
-  getDaySummary(dayStart: number, now: number = Date.now()): SleepDaySummary {
-    const dayEnd = this.nextDayStart(dayStart);
-    let totalMs = 0;
-    let naps = 0;
-    let longestMs = 0;
-    for (const s of this.getSessionsForDay(dayStart, now)) {
-      const end = s.endAt ?? now;
-      totalMs += Math.max(0, Math.min(end, dayEnd) - Math.max(s.startAt, dayStart));
-      longestMs = Math.max(longestMs, end - s.startAt);
-      if (s.kind === 'nap') naps++;
-    }
-    return { totalMs, naps, longestMs };
-  }
-
   /** When the baby last woke up (null if asleep or no history). */
   getLastWakeAt(): number | null {
     if (this.activeSession()) return null;
@@ -270,20 +241,6 @@ export class SleepService {
       if (s.endAt !== null && (last === null || s.endAt > last)) last = s.endAt;
     }
     return last;
-  }
-
-  /** Local midnight for the given time. */
-  startOfDay(ms: number): number {
-    const d = new Date(ms);
-    d.setHours(0, 0, 0, 0);
-    return d.getTime();
-  }
-
-  /** Local midnight of the following day (DST-safe, unlike + DAY_MS). */
-  nextDayStart(dayStart: number): number {
-    const d = new Date(dayStart);
-    d.setDate(d.getDate() + 1);
-    return d.getTime();
   }
 
   getWindowStart(): number {

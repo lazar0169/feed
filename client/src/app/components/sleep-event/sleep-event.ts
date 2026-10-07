@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { SleepSession } from '../../models/sleep-session.model';
 import { formatDuration } from '../../utils/duration';
 
-/** A "fell asleep" or "woke up" row in the Log, styled like a feeding row. */
+/** A "fell asleep" or "woke up" row in the Sleep list, styled like a feeding row. */
 @Component({
   selector: 'app-sleep-event',
   templateUrl: './sleep-event.html',

@@ -26,7 +26,7 @@ import { SleepKind, SleepSession, SleepSessionInput } from '../../models/sleep-s
 export class SleepForm implements OnInit, OnChanges {
   @Input() session?: SleepSession;
   @Input() defaultKind: SleepKind = 'nap';
-  /** Whether the end can be left empty (no other session is in progress). */
+  /** Whether "still asleep" is allowed (no other session is in progress). */
   @Input() allowOpenEnd = false;
   /** Error from the parent (e.g. overlap with another session). */
   @Input() error: string | null = null;
@@ -54,14 +54,12 @@ export class SleepForm implements OnInit, OnChanges {
   private initForm(): void {
     this.isEditMode = !!this.session;
     const now = Date.now();
+    const stillAsleep = this.session?.endAt === null;
     const value = {
       kind: this.session?.kind ?? this.defaultKind,
       start: this.toLocalInput(this.session?.startAt ?? now - 60 * 60 * 1000),
-      end: this.session
-        ? this.session.endAt === null
-          ? ''
-          : this.toLocalInput(this.session.endAt)
-        : this.toLocalInput(now),
+      stillAsleep,
+      end: stillAsleep ? '' : this.toLocalInput(this.session?.endAt ?? now),
       note: this.session?.note ?? '',
     };
 
@@ -72,6 +70,7 @@ export class SleepForm implements OnInit, OnChanges {
         {
           kind: [value.kind, Validators.required],
           start: [value.start, Validators.required],
+          stillAsleep: [value.stillAsleep],
           end: [value.end],
           note: [value.note],
         },
@@ -80,7 +79,7 @@ export class SleepForm implements OnInit, OnChanges {
     }
   }
 
-  /** end after start, nothing in the future, open end only when allowed. */
+  /** end after start, nothing in the future, "still asleep" only when allowed. */
   private validateRange(group: AbstractControl): ValidationErrors | null {
     const start = this.parseLocal(group.get('start')?.value);
     const end = this.parseLocal(group.get('end')?.value);
@@ -88,7 +87,8 @@ export class SleepForm implements OnInit, OnChanges {
     const latest = Date.now() + 60 * 1000;
     if (start === null) return null; // handled by required
     if (start > latest) return { futureStart: true };
-    if (end === null) return this.allowOpenEnd ? null : { endRequired: true };
+    if (group.get('stillAsleep')?.value) return this.allowOpenEnd ? null : { openEndTaken: true };
+    if (end === null) return { endRequired: true };
     if (end > latest) return { futureEnd: true };
     if (end <= start) return { endBeforeStart: true };
     return null;
@@ -101,11 +101,18 @@ export class SleepForm implements OnInit, OnChanges {
     if (errors['futureEnd']) return 'Wake-up time is in the future.';
     if (errors['endBeforeStart']) return 'Wake-up must be after falling asleep.';
     if (errors['endRequired']) return 'Add a wake-up time.';
+    if (errors['openEndTaken']) return 'Another sleep is already in progress.';
     return null;
   }
 
   setKind(kind: SleepKind): void {
     this.sleepForm.patchValue({ kind });
+  }
+
+  /** Turning "still asleep" off needs a wake-up time to start from. */
+  onStillAsleepChange(): void {
+    const { stillAsleep, end } = this.sleepForm.value;
+    if (!stillAsleep && !end) this.sleepForm.patchValue({ end: this.toLocalInput(Date.now()) });
   }
 
   onSubmit(): void {
@@ -114,7 +121,7 @@ export class SleepForm implements OnInit, OnChanges {
     this.submitForm.emit({
       kind: raw.kind,
       startAt: this.parseLocal(raw.start)!,
-      endAt: this.parseLocal(raw.end),
+      endAt: raw.stillAsleep ? null : this.parseLocal(raw.end),
       note: raw.note || undefined,
     });
   }

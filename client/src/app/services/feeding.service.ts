@@ -30,7 +30,7 @@ export class FeedingService {
 
   // Only the most recent window of entries is kept in memory. This keeps the
   // startup fetch (and every consumer that scans the whole list) bounded as
-  // history grows. Older entries are fetched on demand by the Log page via
+  // history grows. Older entries are fetched on demand by the Feed page via
   // loadEntriesRange().
   private readonly RECENT_WINDOW_DAYS = 90;
 
@@ -93,8 +93,8 @@ export class FeedingService {
   }
 
   /**
-   * Fetch entries with timestamp in [from, to) for the Log's history. Not
-   * added to entries$; the Log keeps them in its own store. Returns [] on error.
+   * Fetch entries with timestamp in [from, to) for the Feed page's history. Not
+   * added to entries$; the Feed page keeps them in its own store. Returns [] on error.
    */
   async loadEntriesRange(from: number, to: number): Promise<FeedingEntry[]> {
     const user = this.authService.currentUser();
@@ -216,7 +216,7 @@ export class FeedingService {
       const entries = this.entriesSubject.value;
       const index = entries.findIndex(entry => entry.id === id);
 
-      // The entry may live in the recent window (entries$) or only in the Log's
+      // The entry may live in the recent window (entries$) or only in the Feed page's
       // older-history store. When it isn't in memory we still perform the DB
       // write — the feeding form always submits the full editable field set.
       const base: FeedingEntry = index !== -1
@@ -280,7 +280,7 @@ export class FeedingService {
       if (error) throw error;
 
       // Remove from the recent window if it lives there; older entries are
-      // removed from the Log's own store by the caller.
+      // removed from the Feed page's own store by the caller.
       const entries = this.entriesSubject.value;
       const filteredEntries = entries.filter(entry => entry.id !== id);
       if (filteredEntries.length !== entries.length) {

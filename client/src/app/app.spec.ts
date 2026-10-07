@@ -41,13 +41,13 @@ describe('App', () => {
     expect(el.querySelector('.app-nav')).toBeNull();
   });
 
-  it('shows Today, Log, Sleep and Settings in the nav when logged in', async () => {
+  it('shows Today, Feed, Sleep and Settings in the nav when logged in', async () => {
     auth.isAuthenticated.set(true);
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const labels = Array.from(
       (fixture.nativeElement as HTMLElement).querySelectorAll('.app-nav .nav-link span'),
     ).map((span) => span.textContent?.trim());
-    expect(labels).toEqual(['Today', 'Log', 'Sleep', 'Settings']);
+    expect(labels).toEqual(['Today', 'Feed', 'Sleep', 'Settings']);
   });
 });

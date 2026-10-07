@@ -1,4 +1,4 @@
-import { buildTimeline, localDateKey } from './timeline';
+import { buildTimeline, localDateKey, sleepDayKey } from './timeline';
 import { FeedingEntry } from '../models/feeding-entry.model';
 import { SleepSession } from '../models/sleep-session.model';
 
@@ -12,13 +12,24 @@ function feed(id: string, ms: number, amount = 120, type: 'milk' | 'solid' = 'mi
   return { id, type, date: localDateKey(ms), time, amount, timestamp: ms };
 }
 
-const night: SleepSession = { id: 'night', kind: 'night', startAt: at(5, 21), endAt: at(6, 6) };
+const night: SleepSession = { id: 'night', kind: 'night', startAt: at(5, 19), endAt: at(6, 7) };
 const nap: SleepSession = { id: 'nap', kind: 'nap', startAt: at(6, 13), endAt: at(6, 14, 30) };
-const feeds = [feed('f1', at(5, 20, 30), 180), feed('f2', at(6, 2, 15)), feed('f3', at(6, 7))];
-const options = { since: at(1, 0), now: at(6, 20), filter: 'all' as const };
+const feeds = [feed('f1', at(5, 18, 30), 180), feed('f2', at(6, 2, 15)), feed('f3', at(6, 8))];
+const options = { since: at(1, 0), now: at(6, 20) };
+
+describe('sleepDayKey', () => {
+  it('moves a night started after noon to the next day', () => {
+    expect(sleepDayKey(night)).toBe('2026-10-06');
+    expect(sleepDayKey({ ...night, startAt: at(6, 0, 30) })).toBe('2026-10-06');
+  });
+
+  it('keeps naps on the day they start, even late ones', () => {
+    expect(sleepDayKey({ ...nap, startAt: at(6, 19) })).toBe('2026-10-06');
+  });
+});
 
 describe('buildTimeline', () => {
-  it('splits a night across midnight and slots night feeds between its events', () => {
+  it('splits sleep events across midnight, newest first', () => {
     const days = buildTimeline(feeds, [nap, night], options);
 
     expect(days.map((d) => d.date)).toEqual(['2026-10-06', '2026-10-05']);
@@ -32,37 +43,31 @@ describe('buildTimeline', () => {
     expect(days[1].items.map((i) => i.key)).toEqual(['sleep:night:start', 'feed:f1']);
   });
 
-  it('totals milk, solids and sleep clipped to each day', () => {
+  it('counts the whole night toward the morning it ends', () => {
     const solid = feed('s1', at(6, 12), 40, 'solid');
     const [today, yesterday] = buildTimeline([...feeds, solid], [nap, night], options);
 
-    expect(today).toMatchObject({ milkMl: 240, solidFeeds: 1, sleepMs: 6 * HOUR + 1.5 * HOUR });
-    expect(yesterday).toMatchObject({ milkMl: 180, solidFeeds: 0, sleepMs: 3 * HOUR });
+    expect(today).toMatchObject({ milkMl: 240, solidFeeds: 1, sleepMs: 12 * HOUR + 1.5 * HOUR });
+    expect(today.naps).toBe(1);
+    expect(yesterday).toMatchObject({ milkMl: 180, sleepMs: 0, naps: 0 });
   });
 
-  it('filters rows but keeps day totals, dropping days left empty', () => {
-    const onlySleepDay: SleepSession = {
-      id: 'old',
-      kind: 'nap',
-      startAt: at(3, 10),
-      endAt: at(3, 11),
-    };
+  it('keeps a night split by an evening waking together', () => {
+    const early: SleepSession = { id: 'e', kind: 'night', startAt: at(5, 19), endAt: at(5, 23) };
+    const late: SleepSession = { id: 'l', kind: 'night', startAt: at(5, 23, 30), endAt: at(6, 6) };
+    const [today, yesterday] = buildTimeline([], [early, late], options);
 
-    const feedDays = buildTimeline(feeds, [nap, night, onlySleepDay], {
-      ...options,
-      filter: 'feeds',
-    });
-    expect(feedDays.map((d) => d.date)).toEqual(['2026-10-06', '2026-10-05']);
-    expect(feedDays[0].items.every((i) => i.kind === 'feed')).toBe(true);
-    expect(feedDays[0].sleepMs).toBe(7.5 * HOUR);
+    expect(today.sleepMs).toBe(4 * HOUR + 6.5 * HOUR);
+    expect(yesterday.sleepMs).toBe(0);
+  });
 
-    const sleepDays = buildTimeline(feeds, [nap, night, onlySleepDay], {
-      ...options,
-      filter: 'sleep',
-    });
-    expect(sleepDays.map((d) => d.date)).toEqual(['2026-10-06', '2026-10-05', '2026-10-03']);
-    expect(sleepDays[0].items.every((i) => i.kind !== 'feed')).toBe(true);
-    expect(sleepDays[0].milkMl).toBe(240);
+  it('attaches the awake gap to each fell-asleep row', () => {
+    const [today, yesterday] = buildTimeline([], [nap, night], options);
+    const start = (items: typeof today.items, id: string) =>
+      items.find((i) => i.key === `sleep:${id}:start`);
+
+    expect(start(today.items, 'nap')).toMatchObject({ awakeBeforeMs: 6 * HOUR });
+    expect(start(yesterday.items, 'night')).toMatchObject({ awakeBeforeMs: null });
   });
 
   it('drops events before `since` but keeps a wake-up after it', () => {
